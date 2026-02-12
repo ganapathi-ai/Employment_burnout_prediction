@@ -14,11 +14,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY api/ ./api/
-COPY models/ ./models/
 COPY scripts/ ./scripts/
 
-# Create logs directory
-RUN mkdir -p logs
+# Create runtime directories
+RUN mkdir -p models logs
 
 # Expose port
 EXPOSE 8000
