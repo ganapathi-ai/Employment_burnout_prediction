@@ -1,0 +1,40 @@
+# Configuration for Render Frontend (Streamlit app)
+# This is an alternative to render.yaml for testing purposes
+
+services:
+  - type: web
+    name: burnout-app-frontend
+    env: python
+    
+    # GitHub repository
+    repo: https://github.com/YOUR_USERNAME/Employers_Burnout_prediction
+    branch: main
+    
+    # Build and start commands
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run frontend/streamlit_app.py --server.port 8501 --server.address 0.0.0.0
+    
+    # Environment variables
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: API_URL
+        # IMPORTANT: Replace with your actual backend URL from Render
+        value: https://burnout-api-backend.onrender.com
+      - key: STREAMLIT_SERVER_PORT
+        value: 8501
+      - key: STREAMLIT_SERVER_HEADLESS
+        value: true
+      - key: STREAMLIT_SERVER_RUNONCESAVEFLAG
+        value: true
+      - key: STREAMLIT_BROWSER_GATHERUSAGESTATS
+        value: false
+    
+    # Root directory
+    rootDir: ./
+    
+    # Restart policy
+    autoDeploy: true
+    
+    # Plan
+    plan: free

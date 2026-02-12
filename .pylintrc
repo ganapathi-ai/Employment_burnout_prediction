@@ -1,0 +1,25 @@
+[MASTER]
+disable=
+    C0114,  # Missing module docstring
+    C0115,  # Missing class docstring
+    C0116,  # Missing function docstring
+    R0903,  # Too few public methods
+    R0913,  # Too many arguments
+    W0703,  # Catching too broad exception
+
+max-line-length = 100
+ignore-imports = yes
+load-plugins = 
+
+[DESIGN]
+max-locals = 15
+max-arguments = 5
+max-attributes = 7
+
+[MESSAGES CONTROL]
+enable = all
+
+[REPORTS]
+output-format = colorized
+score = yes
+fail-under = 7.0

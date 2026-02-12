@@ -1,0 +1,47 @@
+# render.yaml - Render Deployment Configuration
+# This file tells Render how to build and deploy your application
+
+services:
+  - type: web
+    name: burnout-api-backend
+    env: python
+    repo: https://github.com/YOUR_USERNAME/Employers_Burnout_prediction
+    branch: main
+    
+    # Build command
+    buildCommand: pip install -r requirements.txt
+    
+    # Start command
+    startCommand: python -m uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    
+    # Environment variables (add these in Render dashboard)
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: burnout_postgres
+          property: connectionString
+      - key: WANDB_API_KEY
+        scope: RUN_TIME
+      - key: ENVIRONMENT
+        value: production
+      - key: DEBUG
+        value: false
+    
+    # Root directory
+    rootDir: ./
+    
+    # Restart policy
+    autoDeploy: true
+    
+    # Health check
+    healthCheckPath: /health
+    
+    # Presets
+    plan: free
+    numInstances: 1
+    
+databases:
+  - name: burnout_postgres
+    databaseName: burnout_db
+    user: burnout_user
+    plan: free
