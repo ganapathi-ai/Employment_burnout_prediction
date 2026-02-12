@@ -62,7 +62,7 @@ jobs:
       uses: docker/setup-buildx-action@v2
     
     - name: Build Docker image
-      run: docker build -t burnout-api:${{ github.sha }} -t burnout-api:latest .
+      run: docker build -t ganapathi18/employer_burnout:${{ github.sha }} -t ganapathi18/employer_burnout:latest .
     
     - name: Log in to Docker Hub
       if: github.event_name == 'push'
@@ -74,10 +74,10 @@ jobs:
     - name: Push to Docker Hub
       if: github.event_name == 'push'
       run: |
-        docker tag burnout-api:latest ${{ secrets.DOCKER_USERNAME }}/burnout-api:latest
-        docker tag burnout-api:latest ${{ secrets.DOCKER_USERNAME }}/burnout-api:${{ github.sha }}
-        docker push ${{ secrets.DOCKER_USERNAME }}/burnout-api:latest
-        docker push ${{ secrets.DOCKER_USERNAME }}/burnout-api:${{ github.sha }}
+        docker tag ganapathi18/employer_burnout:latest ${{ secrets.DOCKER_USERNAME }}/employer_burnout:latest
+        docker tag ganapathi18/employer_burnout:latest ${{ secrets.DOCKER_USERNAME }}/employer_burnout:${{ github.sha }}
+        docker push ${{ secrets.DOCKER_USERNAME }}/employer_burnout:latest
+        docker push ${{ secrets.DOCKER_USERNAME }}/employer_burnout:${{ github.sha }}
 
   deploy-to-render:
     needs: build-and-push
