@@ -28,7 +28,6 @@ prometheus-client>=0.17.0
 # Frontend
 streamlit>=1.28.0
 requests>=2.31.0
-plotly>=5.18.0
 
 # Testing & Code Quality
 pytest>=7.4.0

@@ -6,17 +6,10 @@ import os
 import pandas as pd
 from datetime import datetime
 
-# plotly is optional for some deployments; fail gracefully if missing
-try:
-    import plotly.graph_objects as go
-    import plotly.express as px
-except ImportError as err:
-    # streamlit may not be set up yet, catch later in main
-    go = None
-    px = None
-    PLOTLY_IMPORT_ERROR = err
-else:
-    PLOTLY_IMPORT_ERROR = None
+# previously used Plotly for charts; switched to Streamlit natives
+# (no external plotting library required)
+
+# if you want to add visual libraries in future, import them here
 
 st.set_page_config(
     page_title="Burnout Risk Analyzer",
@@ -25,13 +18,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# abort early if plotly not available
-if PLOTLY_IMPORT_ERROR is not None or go is None or px is None:
-    st.error(
-        "Plotly library is required for this dashboard but could not be imported. "
-        "Please make sure `plotly` is listed in your requirements and installed in the environment."
-    )
-    st.stop()
 
 # Custom CSS
 st.markdown("""
@@ -154,37 +140,16 @@ with tab1:
                     # Display results
                     st.success("✅ Analysis Complete!")
                     
-                    # Risk visualization
+                    # Risk visualization (simpler charts)
                     col1, col2, col3 = st.columns([2, 2, 1])
                     
                     with col1:
-                        # Gauge chart
-                        fig = go.Figure(go.Indicator(
-                            mode="gauge+number+delta",
-                            value=risk_prob,
-                            domain={'x': [0, 1], 'y': [0, 1]},
-                            title={'text': "Burnout Risk Score"},
-                            delta={'reference': 50},
-                            gauge={
-                                'axis': {'range': [None, 100]},
-                                'bar': {'color': "darkred" if risk_prob > 70 else "orange" if risk_prob > 40 else "green"},
-                                'steps': [
-                                    {'range': [0, 40], 'color': "lightgreen"},
-                                    {'range': [40, 70], 'color': "lightyellow"},
-                                    {'range': [70, 100], 'color': "lightcoral"}
-                                ],
-                                'threshold': {
-                                    'line': {'color': "red", 'width': 4},
-                                    'thickness': 0.75,
-                                    'value': 70
-                                }
-                            }
-                        ))
-                        fig.update_layout(height=300)
-                        st.plotly_chart(fig, use_container_width=True)
+                        # show risk probability as a metric with color cue
+                        risk_text = f"{risk_prob:.1f}%"
+                        st.metric("Burnout Risk Score", risk_text,
+                                  delta=f"{risk_prob-50:.1f}%")
                     
                     with col2:
-                        # Risk breakdown
                         st.markdown("### 📊 Risk Breakdown")
                         risk_factors = pd.DataFrame({
                             'Factor': ['Work Load', 'Screen Time', 'Sleep Quality', 'Recovery', 'Meetings'],
@@ -196,10 +161,7 @@ with tab1:
                                 min(100, (meetings / 10) * 100)
                             ]
                         })
-                        fig2 = px.bar(risk_factors, x='Score', y='Factor', orientation='h',
-                                     color='Score', color_continuous_scale='RdYlGn_r')
-                        fig2.update_layout(height=300, showlegend=False)
-                        st.plotly_chart(fig2, use_container_width=True)
+                        st.bar_chart(risk_factors.set_index('Factor'))
                     
                     with col3:
                         st.markdown("### 🎯 Result")
@@ -245,12 +207,7 @@ with tab1:
                         'Your Value': [work_hours, screen_time, sleep_hours, breaks, meetings],
                         'Recommended': [8, 6, 8, 4, 3]
                     })
-                    
-                    fig3 = go.Figure()
-                    fig3.add_trace(go.Bar(name='Your Value', x=metrics_df['Metric'], y=metrics_df['Your Value']))
-                    fig3.add_trace(go.Bar(name='Recommended', x=metrics_df['Metric'], y=metrics_df['Recommended']))
-                    fig3.update_layout(barmode='group', height=400)
-                    st.plotly_chart(fig3, use_container_width=True)
+                    st.bar_chart(metrics_df.set_index('Metric'))
                     
                 else:
                     st.error(f"❌ API Error: {response.status_code}")
@@ -274,23 +231,20 @@ with tab2:
         
         with col1:
             # Burnout distribution
-            fig = px.pie(df, names='burnout_risk', title='Burnout Risk Distribution',
-                        color_discrete_sequence=px.colors.sequential.RdBu)
-            st.plotly_chart(fig, use_container_width=True)
+            dist = df['burnout_risk'].value_counts()
+            st.bar_chart(dist)
         
         with col2:
             # Average metrics by risk
             avg_metrics = df.groupby('burnout_risk')[['work_hours', 'sleep_hours', 'meetings_count']].mean()
-            fig = px.bar(avg_metrics, barmode='group', title='Average Metrics by Risk Level')
-            st.plotly_chart(fig, use_container_width=True)
+            st.bar_chart(avg_metrics)
         
         # Correlation heatmap
         st.markdown("### 🔥 Feature Correlations")
         numeric_cols = ['work_hours', 'screen_time_hours', 'meetings_count', 'breaks_taken', 
                        'sleep_hours', 'task_completion_rate', 'burnout_score']
         corr = df[numeric_cols].corr()
-        fig = px.imshow(corr, text_auto=True, aspect="auto", title="Correlation Matrix")
-        st.plotly_chart(fig, use_container_width=True)
+        st.write(corr)
         
     except FileNotFoundError:
         st.warning("Dataset not found. Upload data to see analytics.")
