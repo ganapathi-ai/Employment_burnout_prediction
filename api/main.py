@@ -169,6 +169,11 @@ async def root():
         "features": "17 engineered features for accurate prediction"
     }
 
+@app.get("/metrics")
+async def metrics():
+    """Prometheus metrics endpoint"""
+    return {"status": "metrics placeholder", "model_loaded": model is not None}
+
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return Response(status_code=204)
