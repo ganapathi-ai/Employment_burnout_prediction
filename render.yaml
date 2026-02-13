@@ -1,47 +1,33 @@
-# render.yaml - Render Deployment Configuration
-# This file tells Render how to build and deploy your application
-
 services:
+  # Backend API
   - type: web
-    name: burnout-api-backend
+    name: burnout-api
+    runtime: python
     env: python
-    repo: https://github.com/ganapathi-ai/Employment_burnout_prediction.git
-    branch: main
-    
-    # Build command
-    buildCommand: pip install -r requirements.txt
-    
-    # Start command
-    startCommand: python -m uvicorn api.main:app --host 0.0.0.0 --port $PORT
-    
-    # Environment variables (add these in Render dashboard)
+    buildCommand: pip install -r requirements.txt && python scripts/init_models.py
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: burnout_postgres
-          property: connectionString
+        value: postgresql://neondb_owner:npg_S3eaGPdmBzn4@ep-rapid-grass-aiuta04r-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require
       - key: WANDB_API_KEY
-        scope: RUN_TIME
+        value: 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
       - key: ENVIRONMENT
         value: production
-      - key: DEBUG
-        value: false
-    
-    # Root directory
-    rootDir: ./
-    
-    # Restart policy
-    autoDeploy: true
-    
-    # Health check
-    healthCheckPath: /health
-    
-    # Presets
-    plan: free
-    numInstances: 1
-    
-databases:
-  - name: burnout_postgres
-    databaseName: burnout_db
-    user: burnout_user
-    plan: free
+      - key: MODEL_PATH
+        value: models/best_model.joblib
+      - key: PREPROCESSOR_PATH
+        value: models/preprocessor.joblib
+
+  # Frontend Streamlit
+  - type: web
+    name: burnout-frontend
+    runtime: python
+    env: python
+    buildCommand: pip install streamlit requests python-dotenv
+    startCommand: streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0
+    envVars:
+      - key: API_URL
+        value: https://employment-burnout-prediction-1.onrender.com
+      - key: ENVIRONMENT
+        value: production

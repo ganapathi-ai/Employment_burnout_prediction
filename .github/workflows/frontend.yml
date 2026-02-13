@@ -28,7 +28,7 @@ jobs:
       run: |
         python -m py_compile frontend/streamlit_app.py
     
-    - name: Deploy to Render
+    - name: Deploy Frontend to Render
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
-        curl -X POST https://api.render.com/deploy/srv-${{ secrets.RENDER_FRONTEND_SERVICE_ID }}?key=${{ secrets.RENDER_API_KEY }}
+        curl -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}"
