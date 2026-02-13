@@ -92,15 +92,28 @@ async def predict(user_data: UserData):
     try:
         if model is None:
             raise HTTPException(status_code=503, detail="Model not loaded")
-        # Prepare data (simplified - without preprocessor)
-        input_dict = user_data.model_dump()
-        input_array = np.array([[input_dict[key]
-                                 for key in input_dict.keys()]])
+        
+        # Prepare numeric features only (exclude day_type string)
+        features = [
+            user_data.work_hours,
+            user_data.screen_time_hours,
+            user_data.meetings_count,
+            user_data.breaks_taken,
+            user_data.after_hours_work,
+            user_data.sleep_hours,
+            user_data.task_completion_rate,
+            1 if user_data.day_type.lower() == "weekend" else 0  # Encode day_type
+        ]
+        
+        input_array = np.array([features])
+        
         # Predict
         prediction = model.predict(input_array)[0]
         probability = model.predict_proba(input_array)[0][1]
         risk_level = 'High' if prediction == 1 else 'Low'
+        
         logger.info(f"✓ Prediction: {risk_level} ({probability:.2%})")
+        
         return BurnoutPrediction(
             risk_level=risk_level,
             risk_probability=float(probability),
