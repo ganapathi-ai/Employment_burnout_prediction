@@ -70,7 +70,7 @@ PREPROCESSOR_PATH=models/preprocessor.joblib
 ```
 Name: burnout-frontend
 Environment: Python 3
-Build Command: pip install streamlit requests python-dotenv plotly
+Build Command: pip install -r requirements.txt
 Start Command: streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0
 ```
 
