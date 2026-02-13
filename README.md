@@ -160,3 +160,4 @@ This project is for educational purposes.
 ---
 
 **Built with \u2764\ufe0f using FastAPI, Streamlit, and Machine Learning**
+<!-- trigger workflows push -->
