@@ -22,7 +22,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # install full requirements to ensure plotly and pandas are available
+        # install project requirements (Plotly was removed)
         pip install -r requirements.txt
     
     - name: Check Streamlit syntax

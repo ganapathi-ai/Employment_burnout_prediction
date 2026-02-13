@@ -14,7 +14,7 @@ Advanced ML-powered system to predict employee burnout risk with interactive vis
 ## \ud83d\udcca Tech Stack
 
 - **Backend**: FastAPI, scikit-learn, XGBoost, PostgreSQL
-- **Frontend**: Streamlit, Plotly
+- **Frontend**: Streamlit
 - **Deployment**: Render (Free tier)
 - **CI/CD**: GitHub Actions, Docker Hub
 - **ML Tracking**: Weights & Biases
