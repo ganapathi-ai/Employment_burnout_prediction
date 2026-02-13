@@ -106,6 +106,8 @@ git commit -m "test: CI/CD"
 git push origin main
 ```
 
+<!-- another push intended to trigger workflows with a different commit name -->
+
 ---
 
 ## Step 5: Verify Deployment
