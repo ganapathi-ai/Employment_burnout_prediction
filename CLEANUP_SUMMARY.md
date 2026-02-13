@@ -14,7 +14,7 @@
 ## 📄 Key Files (Kept & Updated)
 
 ### Deployment
-- **DEPLOYMENT.md** - Complete deployment guide with all credentials
+- **DEPLOYMENT.md** - Complete deployment guide with credentials
 - **render.yaml** - Render configuration with credentials
 
 ### Code
@@ -34,8 +34,8 @@
 
 ## 🎯 Next Steps
 
-1. **Deploy Frontend**: Follow DEPLOYMENT.md Step 1
-2. **Configure GitHub Actions**: Follow DEPLOYMENT.md Step 2
+1. **Deploy Backend & Frontend**: Follow DEPLOYMENT.md Steps 1-2
+2. **Configure GitHub Actions**: Follow DEPLOYMENT.md Step 3
 3. **Test**: Verify everything works
 
 ## 🔑 Credentials (Preserved)
@@ -45,8 +45,9 @@ All credentials remain in:
 - `render.yaml`
 - `DEPLOYMENT.md`
 
-**Backend URL**: https://employment-burnout-prediction-1.onrender.com ✅
+**Database**: Neon PostgreSQL ✅
+**ML Tracking**: Weights & Biases ✅
 
 ---
 
-**Everything is clean and ready for deployment!**
+**Everything is clean and ready for fresh deployment!**

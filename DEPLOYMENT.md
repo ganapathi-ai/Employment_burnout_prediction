@@ -1,21 +1,59 @@
 # Complete Deployment Guide - Render & GitHub Actions
 
-## 🎯 Quick Overview
-
-**Backend**: https://employment-burnout-prediction-1.onrender.com ✅ (Already Deployed)
-**Frontend**: Deploy following Step 1 below
-**GitHub Actions**: Configure following Step 2 below
+## 🎯 Deploy Both Services Fresh
 
 ---
 
-## Step 1: Deploy Frontend on Render (5 minutes)
+## Step 1: Deploy Backend on Render (5 minutes)
 
-### 1.1 Create Web Service
+### 1.1 Create Backend Service
 - Go to: https://dashboard.render.com
 - Click: **New +** → **Web Service**
 - Connect your GitHub repository
 
-### 1.2 Configure Service
+### 1.2 Configure Backend
+**IMPORTANT**: Select **Python 3** from Environment dropdown (NOT Docker)
+
+```
+Name: burnout-api
+Environment: Python 3 ⚠️
+Root Directory: . (or leave empty)
+Build Command: pip install -r requirements.txt && python scripts/init_models.py
+Start Command: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+Plan: Free
+```
+
+### 1.3 Add Backend Environment Variables
+Click "Add Environment Variable" and add these 5:
+
+```
+DATABASE_URL=postgresql://neondb_owner:npg_S3eaGPdmBzn4@ep-rapid-grass-aiuta04r-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require
+WANDB_API_KEY=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
+ENVIRONMENT=production
+MODEL_PATH=models/best_model.joblib
+PREPROCESSOR_PATH=models/preprocessor.joblib
+```
+
+### 1.4 Deploy Backend
+- Click **Create Web Service**
+- Wait 2-3 minutes for deployment
+- **Copy your backend URL** (e.g., https://burnout-api-xxxx.onrender.com)
+- Test: `curl https://your-backend-url.onrender.com/health`
+
+### 1.5 Get Backend Deploy Hook
+- Go to: Settings → Deploy Hook
+- Copy the URL
+- Save for Step 3
+
+---
+
+## Step 2: Deploy Frontend on Render (5 minutes)
+
+### 2.1 Create Frontend Service
+- Click: **New +** → **Web Service**
+- Connect your GitHub repository
+
+### 2.2 Configure Frontend
 **IMPORTANT**: Select **Python 3** from Environment dropdown (NOT Docker)
 
 ```
@@ -27,29 +65,30 @@ Start Command: streamlit run frontend/streamlit_app.py --server.port $PORT --ser
 Plan: Free
 ```
 
-### 1.3 Add Environment Variables
+### 2.3 Add Frontend Environment Variables
 Click "Add Environment Variable" and add these 2:
 
 ```
-API_URL=https://employment-burnout-prediction-1.onrender.com
+API_URL=https://your-backend-url.onrender.com
 ENVIRONMENT=production
 ```
+**Replace with YOUR actual backend URL from Step 1.4**
 
-### 1.4 Deploy
+### 2.4 Deploy Frontend
 - Click **Create Web Service**
 - Wait 2-3 minutes for deployment
 - Copy your frontend URL
 
-### 1.5 Get Deploy Hook
+### 2.5 Get Frontend Deploy Hook
 - Go to: Settings → Deploy Hook
 - Copy the URL
-- Save for Step 2
+- Save for Step 3
 
 ---
 
-## Step 2: Configure GitHub Actions (5 minutes)
+## Step 3: Configure GitHub Actions (5 minutes)
 
-### 2.1 Add GitHub Secrets
+### 3.1 Add GitHub Secrets
 Go to: Your GitHub Repo → Settings → Secrets and variables → Actions
 
 Click **New repository secret** and add these 4:
@@ -67,17 +106,17 @@ Get token: https://hub.docker.com/settings/security
 
 **3. RENDER_BACKEND_DEPLOY_HOOK**
 ```
-Get from: Render Dashboard → employment-burnout-prediction-1 → Settings → Deploy Hook
+From Step 1.5 - Backend deploy hook
 Format: https://api.render.com/deploy/srv-xxxxx?key=yyyyy
 ```
 
 **4. RENDER_FRONTEND_DEPLOY_HOOK**
 ```
-Get from: Render Dashboard → burnout-frontend → Settings → Deploy Hook
+From Step 2.5 - Frontend deploy hook
 Format: https://api.render.com/deploy/srv-xxxxx?key=yyyyy
 ```
 
-### 2.2 Test CI/CD
+### 3.2 Test CI/CD
 ```bash
 git add .
 git commit -m "test: CI/CD pipeline"
@@ -88,11 +127,11 @@ Check: GitHub → Actions tab (should show green checkmarks)
 
 ---
 
-## Step 3: Verify Deployment
+## Step 4: Verify Deployment
 
-### Backend (Already Working)
+### Backend Health Check
 ```bash
-curl https://employment-burnout-prediction-1.onrender.com/health
+curl https://your-backend-url.onrender.com/health
 ```
 Expected: `{"status":"healthy","timestamp":"..."}`
 
@@ -102,20 +141,6 @@ Open your frontend URL in browser and test the prediction form.
 ### GitHub Actions
 - Go to: Repository → Actions tab
 - Both workflows should pass ✅
-
----
-
-## 📋 Backend Configuration (Already Set)
-
-Your backend is already deployed with these environment variables:
-
-```
-DATABASE_URL=postgresql://neondb_owner:npg_S3eaGPdmBzn4@ep-rapid-grass-aiuta04r-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require
-WANDB_API_KEY=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
-ENVIRONMENT=production
-MODEL_PATH=models/best_model.joblib
-PREPROCESSOR_PATH=models/preprocessor.joblib
-```
 
 ---
 
@@ -141,8 +166,8 @@ streamlit run frontend/streamlit_app.py
 - Docker fields will disappear
 
 ### Frontend can't connect to backend
-- Verify `API_URL` environment variable is correct
-- Check backend is running: `curl https://employment-burnout-prediction-1.onrender.com/health`
+- Verify `API_URL` environment variable matches your backend URL
+- Check backend is running: `curl https://your-backend-url.onrender.com/health`
 
 ### GitHub Actions failing
 - Verify all 4 secrets are added correctly (case-sensitive)
@@ -158,7 +183,7 @@ streamlit run frontend/streamlit_app.py
 
 ## ✅ Success Checklist
 
-- [x] Backend deployed and healthy
+- [ ] Backend deployed and healthy
 - [ ] Frontend deployed
 - [ ] Frontend connects to backend
 - [ ] GitHub secrets configured (4 secrets)
@@ -170,10 +195,8 @@ streamlit run frontend/streamlit_app.py
 ## 🔗 Quick Links
 
 - **Render Dashboard**: https://dashboard.render.com
-- **Backend API**: https://employment-burnout-prediction-1.onrender.com
-- **API Docs**: https://employment-burnout-prediction-1.onrender.com/docs
-- **GitHub Actions**: Your repo → Actions tab
+- **GitHub Actions**: https://github.com/ganapathi-ai/Employment_burnout_prediction/actions
 
 ---
 
-**That's it!** Follow Step 1 to deploy frontend, Step 2 to configure GitHub Actions, and you're done! 🚀
+**Follow Steps 1-4 to complete deployment!** 🚀

@@ -7,8 +7,6 @@ ML-powered system to predict employee burnout risk based on work-from-home metri
 ### Deploy to Render
 Follow **DEPLOYMENT.md** for complete deployment guide.
 
-**Backend**: https://employment-burnout-prediction-1.onrender.com ✅
-
 ### Local Development
 ```bash
 # Install dependencies
@@ -60,4 +58,4 @@ streamlit run frontend/streamlit_app.py
 
 ---
 
-**Live Backend**: https://employment-burnout-prediction-1.onrender.com
+**Follow DEPLOYMENT.md to deploy both services!**
