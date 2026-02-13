@@ -4,9 +4,19 @@ import streamlit as st
 import requests
 import os
 import pandas as pd
-import plotly.graph_objects as go
-import plotly.express as px
 from datetime import datetime
+
+# plotly is optional for some deployments; fail gracefully if missing
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+except ImportError as err:
+    # streamlit may not be set up yet, catch later in main
+    go = None
+    px = None
+    PLOTLY_IMPORT_ERROR = err
+else:
+    PLOTLY_IMPORT_ERROR = None
 
 st.set_page_config(
     page_title="Burnout Risk Analyzer",
@@ -14,6 +24,14 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+# abort early if plotly not available
+if PLOTLY_IMPORT_ERROR is not None or go is None or px is None:
+    st.error(
+        "Plotly library is required for this dashboard but could not be imported. "
+        "Please make sure `plotly` is listed in your requirements and installed in the environment."
+    )
+    st.stop()
 
 # Custom CSS
 st.markdown("""
@@ -247,7 +265,10 @@ with tab2:
     st.info("This section shows aggregated insights from the dataset")
     
     try:
-        df = pd.read_csv('data/work_from_home_burnout_dataset.csv')
+        # ensure we load dataset relative to this file, not the cwd
+        base = os.path.dirname(__file__)
+        df_path = os.path.join(base, '..', 'data', 'work_from_home_burnout_dataset.csv')
+        df = pd.read_csv(df_path)
         
         col1, col2 = st.columns(2)
         
