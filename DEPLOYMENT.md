@@ -37,8 +37,8 @@ PREPROCESSOR_PATH=models/preprocessor.joblib
 ### 1.4 Deploy Backend
 - Click **Create Web Service**
 - Wait 2-3 minutes for deployment
-- **Copy your backend URL** (e.g., https://burnout-api-xxxx.onrender.com)
-- Test: `curl https://your-backend-url.onrender.com/health`
+- Your backend URL: https://employment-burnout-prediction-1.onrender.com
+- Test: `curl https://employment-burnout-prediction-1.onrender.com/health`
 
 ### 1.5 Get Backend Deploy Hook
 - Go to: Settings → Deploy Hook
@@ -69,10 +69,9 @@ Plan: Free
 Click "Add Environment Variable" and add these 2:
 
 ```
-API_URL=https://your-backend-url.onrender.com
+API_URL=https://employment-burnout-prediction-1.onrender.com
 ENVIRONMENT=production
 ```
-**Replace with YOUR actual backend URL from Step 1.4**
 
 ### 2.4 Deploy Frontend
 - Click **Create Web Service**
@@ -131,7 +130,7 @@ Check: GitHub → Actions tab (should show green checkmarks)
 
 ### Backend Health Check
 ```bash
-curl https://your-backend-url.onrender.com/health
+curl https://employment-burnout-prediction-1.onrender.com/health
 ```
 Expected: `{"status":"healthy","timestamp":"..."}`
 
@@ -166,8 +165,8 @@ streamlit run frontend/streamlit_app.py
 - Docker fields will disappear
 
 ### Frontend can't connect to backend
-- Verify `API_URL` environment variable matches your backend URL
-- Check backend is running: `curl https://your-backend-url.onrender.com/health`
+- Verify `API_URL` environment variable is: https://employment-burnout-prediction-1.onrender.com
+- Check backend is running: `curl https://employment-burnout-prediction-1.onrender.com/health`
 
 ### GitHub Actions failing
 - Verify all 4 secrets are added correctly (case-sensitive)

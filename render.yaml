@@ -28,9 +28,6 @@ services:
     startCommand: streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: API_URL
-        fromService:
-          type: web
-          name: burnout-api
-          property: url
+        value: https://employment-burnout-prediction-1.onrender.com
       - key: ENVIRONMENT
         value: production
