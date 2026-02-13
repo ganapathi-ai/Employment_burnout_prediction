@@ -52,6 +52,55 @@ class HealthCheck(BaseModel):
 model = None
 scaler = None
 
+# Load model immediately at import (not just at startup)
+def _load_model_sync():
+    """Load model and scaler at module import"""
+    global model, scaler
+    try:
+        model_path = os.getenv('MODEL_PATH', 'models/best_model.joblib')
+        scaler_path = os.getenv('PREPROCESSOR_PATH', 'models/preprocessor.joblib')
+        
+        if os.path.exists(model_path):
+            model = joblib.load(model_path)
+            logger.info(f"✓ Model loaded from {model_path}")
+        else:
+            logger.warning(f"Model file not found at {model_path}, creating dummy model")
+            from sklearn.ensemble import RandomForestClassifier
+            model = RandomForestClassifier(n_estimators=10, random_state=42)
+            X_dummy = np.random.rand(100, 17)
+            y_dummy = np.random.randint(0, 2, 100)
+            model.fit(X_dummy, y_dummy)
+            logger.info("✓ Dummy model trained and ready")
+            
+        if os.path.exists(scaler_path):
+            scaler = joblib.load(scaler_path)
+            logger.info(f"✓ Scaler loaded from {scaler_path}")
+        else:
+            logger.warning(f"Scaler file not found at {scaler_path}, creating dummy scaler")
+            from sklearn.preprocessing import StandardScaler
+            scaler = StandardScaler()
+            X_dummy = np.random.rand(100, 17)
+            scaler.fit(X_dummy)
+            logger.info("✓ Dummy scaler trained and ready")
+            
+    except Exception as e:
+        logger.error(f"Error loading model/scaler: {e}", exc_info=True)
+        try:
+            from sklearn.ensemble import RandomForestClassifier
+            from sklearn.preprocessing import StandardScaler
+            model = RandomForestClassifier(n_estimators=10, random_state=42)
+            scaler = StandardScaler()
+            X_dummy = np.random.rand(100, 17)
+            y_dummy = np.random.randint(0, 2, 100)
+            model.fit(X_dummy, y_dummy)
+            scaler.fit(X_dummy)
+            logger.info("✓ Emergency: dummy models created")
+        except Exception as fallback_err:
+            logger.critical(f"Failed to create fallback models: {fallback_err}")
+
+# Load model at import time
+_load_model_sync()
+
 def engineer_features(data: UserData):
     """Apply feature engineering to input data"""
     # Base features
@@ -86,55 +135,6 @@ def engineer_features(data: UserData):
     ]
     
     return np.array([features])
-
-@app.on_event("startup")
-async def load_model():
-    """Load model and scaler at startup"""
-    global model, scaler
-    try:
-        model_path = os.getenv('MODEL_PATH', 'models/best_model.joblib')
-        scaler_path = os.getenv('PREPROCESSOR_PATH', 'models/preprocessor.joblib')
-        
-        if os.path.exists(model_path):
-            model = joblib.load(model_path)
-            logger.info(f"✓ Model loaded from {model_path}")
-        else:
-            logger.warning(f"Model file not found at {model_path}, creating dummy model")
-            from sklearn.ensemble import RandomForestClassifier
-            model = RandomForestClassifier(n_estimators=10, random_state=42)
-            # Train on realistic dummy data
-            X_dummy = np.random.rand(100, 17)
-            y_dummy = np.random.randint(0, 2, 100)
-            model.fit(X_dummy, y_dummy)
-            logger.info("✓ Dummy model trained and ready")
-            
-        if os.path.exists(scaler_path):
-            scaler = joblib.load(scaler_path)
-            logger.info(f"✓ Scaler loaded from {scaler_path}")
-        else:
-            logger.warning(f"Scaler file not found at {scaler_path}, creating dummy scaler")
-            from sklearn.preprocessing import StandardScaler
-            scaler = StandardScaler()
-            X_dummy = np.random.rand(100, 17)
-            scaler.fit(X_dummy)
-            logger.info("✓ Dummy scaler trained and ready")
-            
-    except Exception as e:
-        logger.error(f"Error loading model/scaler: {e}", exc_info=True)
-        # Still try to create dummy models so the app doesn't crash
-        try:
-            from sklearn.ensemble import RandomForestClassifier
-            from sklearn.preprocessing import StandardScaler
-            model = RandomForestClassifier(n_estimators=10, random_state=42)
-            scaler = StandardScaler()
-            # train on dummy data
-            X_dummy = np.random.rand(100, 17)
-            y_dummy = np.random.randint(0, 2, 100)
-            model.fit(X_dummy, y_dummy)
-            scaler.fit(X_dummy)
-            logger.info("✓ Emergency: dummy models created")
-        except Exception as fallback_err:
-            logger.critical(f"Failed to create fallback models: {fallback_err}")
 
 @app.get("/health", response_model=HealthCheck)
 async def health_check():
