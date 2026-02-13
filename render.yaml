@@ -9,9 +9,9 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_S3eaGPdmBzn4@ep-rapid-grass-aiuta04r-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require
+        sync: false
       - key: WANDB_API_KEY
-        value: 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
+        sync: false
       - key: ENVIRONMENT
         value: production
       - key: MODEL_PATH
@@ -24,10 +24,13 @@ services:
     name: burnout-frontend
     runtime: python
     env: python
-    buildCommand: pip install streamlit requests python-dotenv
+    buildCommand: pip install streamlit requests python-dotenv plotly
     startCommand: streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0
     envVars:
       - key: API_URL
-        value: https://employment-burnout-prediction-1.onrender.com
+        fromService:
+          type: web
+          name: burnout-api
+          property: url
       - key: ENVIRONMENT
         value: production
