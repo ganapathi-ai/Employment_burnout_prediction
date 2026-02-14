@@ -323,40 +323,43 @@ async def predict(user_data: UserData):
 
         # log to database (non-blocking failures)
         try:
+            logger.info(f"Attempting to store data in database...")
             ins = user_requests.insert().values(
                 user_id=user_data.user_id,
                 name=user_data.name,
                 created_at=datetime.utcnow(),
-                work_hours=all_features['work_hours'],
-                screen_time_hours=all_features['screen_time_hours'],
-                meetings_count=all_features['meetings_count'],
-                breaks_taken=all_features['breaks_taken'],
-                after_hours_work=all_features['after_hours_work'],
-                sleep_hours=all_features['sleep_hours'],
-                task_completion_rate=all_features['task_completion_rate'],
-                is_weekday=all_features['is_weekday'],
-                work_intensity_ratio=all_features['work_intensity_ratio'],
-                meeting_burden=all_features['meeting_burden'],
-                break_adequacy=all_features['break_adequacy'],
-                sleep_deficit=all_features['sleep_deficit'],
-                recovery_index=all_features['recovery_index'],
-                fatigue_risk=all_features['fatigue_risk'],
-                workload_pressure=all_features['workload_pressure'],
-                task_efficiency=all_features['task_efficiency'],
-                work_life_balance_score=all_features['work_life_balance_score'],
-                screen_time_per_meeting=all_features['screen_time_per_meeting'],
-                work_hours_productivity=all_features['work_hours_productivity'],
-                health_risk_score=all_features['health_risk_score'],
-                after_hours_work_hours_est=all_features['after_hours_work_hours_est'],
-                high_workload_flag=all_features['high_workload_flag'],
-                poor_recovery_flag=all_features['poor_recovery_flag']
+                work_hours=float(all_features['work_hours']),
+                screen_time_hours=float(all_features['screen_time_hours']),
+                meetings_count=int(all_features['meetings_count']),
+                breaks_taken=int(all_features['breaks_taken']),
+                after_hours_work=int(all_features['after_hours_work']),
+                sleep_hours=float(all_features['sleep_hours']),
+                task_completion_rate=float(all_features['task_completion_rate']),
+                is_weekday=int(all_features['is_weekday']),
+                work_intensity_ratio=float(all_features['work_intensity_ratio']),
+                meeting_burden=float(all_features['meeting_burden']),
+                break_adequacy=float(all_features['break_adequacy']),
+                sleep_deficit=float(all_features['sleep_deficit']),
+                recovery_index=float(all_features['recovery_index']),
+                fatigue_risk=float(all_features['fatigue_risk']),
+                workload_pressure=float(all_features['workload_pressure']),
+                task_efficiency=float(all_features['task_efficiency']),
+                work_life_balance_score=float(all_features['work_life_balance_score']),
+                screen_time_per_meeting=float(all_features['screen_time_per_meeting']),
+                work_hours_productivity=float(all_features['work_hours_productivity']),
+                health_risk_score=float(all_features['health_risk_score']),
+                after_hours_work_hours_est=float(all_features['after_hours_work_hours_est']),
+                high_workload_flag=int(all_features['high_workload_flag']),
+                poor_recovery_flag=int(all_features['poor_recovery_flag'])
             )
             with engine.connect() as conn:
-                conn.execute(ins)
+                result = conn.execute(ins)
                 conn.commit()
-            logger.info("✓ Request stored in DB")
+                logger.info(f"✓ Request stored in DB with ID: {result.inserted_primary_key}")
         except SQLAlchemyError as db_err:
-            logger.warning(f"DB insert failed: {db_err}")
+            logger.error(f"✗ DB insert failed: {db_err}", exc_info=True)
+        except Exception as e:
+            logger.error(f"✗ Unexpected DB error: {e}", exc_info=True)
 
         return BurnoutPrediction(
             risk_level=risk_level,
