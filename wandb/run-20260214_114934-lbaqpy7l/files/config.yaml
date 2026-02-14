@@ -1,0 +1,53 @@
+_wandb:
+    value:
+        cli_version: 0.24.2
+        e:
+            cfcie2rnazwfhq4k6uc1ija6ytcjk9v7:
+                codePath: init_wandb_live.py
+                codePathLocal: init_wandb_live.py
+                cpu_count: 16
+                cpu_count_logical: 22
+                disk:
+                    /:
+                        total: "1021821579264"
+                        used: "337990881280"
+                email: kakarlagana18@gmail.com
+                executable: C:\Users\lenovo\AppData\Local\Programs\Python\Python313\python.exe
+                git:
+                    commit: 96ff3e695d338befe00ef6e1e85051a86f4e0a50
+                    remote: https://github.com/ganapathi-ai/Employment_burnout_prediction.git
+                host: GANAPATHI-LENOVO
+                memory:
+                    total: "33752997888"
+                os: Windows-11-10.0.26200-SP0
+                program: c:\Users\lenovo\Documents\Employers_Burnout_prediction\init_wandb_live.py
+                python: CPython 3.13.0
+                root: c:\Users\lenovo\Documents\Employers_Burnout_prediction
+                startedAt: "2026-02-14T06:19:34.636833Z"
+                writerId: cfcie2rnazwfhq4k6uc1ija6ytcjk9v7
+        m: []
+        python_version: 3.13.0
+        t:
+            "1":
+                - 105
+            "2":
+                - 105
+            "3":
+                - 2
+                - 13
+                - 15
+                - 16
+                - 62
+            "4": 3.13.0
+            "5": 0.24.2
+            "8":
+                - 2
+                - 3
+            "12": 0.24.2
+            "13": windows-amd64
+api_version:
+    value: 2.0.0
+environment:
+    value: production
+monitoring_type:
+    value: real-time predictions

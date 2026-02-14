@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+from datetime import datetime
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.preprocessing import StandardScaler
@@ -43,10 +44,12 @@ def engineer_features(df):
 
 def train_model():
     """Train burnout prediction model with real data"""
-    # Initialize W&B
+    # Initialize W&B with meaningful name
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M")
     run = wandb.init(
         entity=os.getenv('WANDB_ENTITY', 'kakarlagana18-iihmr'),
         project="burnout-prediction",
+        name=f"training_3models_{timestamp}",
         config={
             "dataset": "work_from_home_burnout",
             "test_size": 0.2,
@@ -55,7 +58,8 @@ def train_model():
             "n_estimators": 100,
             "features": 17
         },
-        tags=["burnout", "classification", "ensemble"]
+        tags=["burnout", "classification", "ensemble", "production"],
+        notes="Training 3 models and selecting best based on ROC-AUC"
     )
     
     print("Loading data...")
