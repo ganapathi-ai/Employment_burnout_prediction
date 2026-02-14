@@ -145,7 +145,7 @@ def train_model():
             best_model = model
             best_name = name
     
-    print(f"\n✓ Best model: {best_name} (ROC-AUC: {best_score:.4f})")
+    print(f"\n[BEST] Best model: {best_name} (ROC-AUC: {best_score:.4f})")
     
     # Log best model
     wandb.run.summary["best_model"] = best_name
@@ -170,18 +170,27 @@ def train_model():
     })
     
     # Create confusion matrix plot
-    wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(
-        probs=None,
-        y_true=y_test.values,
-        preds=y_pred,
-        class_names=['Low Risk', 'High Risk']
-    )})
+    try:
+        wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(
+            probs=None,
+            y_true=y_test.values,
+            preds=y_pred,
+            class_names=['Low Risk', 'High Risk']
+        )})
+    except Exception as e:
+        print(f"Warning: Could not log confusion matrix: {e}")
     
     # Create ROC curve
-    wandb.log({"roc_curve": wandb.plot.roc_curve(y_test, y_proba)})
+    try:
+        wandb.log({"roc_curve": wandb.plot.roc_curve(y_test.values, y_proba)})
+    except Exception as e:
+        print(f"Warning: Could not log ROC curve: {e}")
     
     # Create precision-recall curve
-    wandb.log({"pr_curve": wandb.plot.pr_curve(y_test, y_proba)})
+    try:
+        wandb.log({"pr_curve": wandb.plot.pr_curve(y_test.values, y_proba)})
+    except Exception as e:
+        print(f"Warning: Could not log PR curve: {e}")
     
     # Feature importance
     if hasattr(best_model, 'feature_importances_'):
@@ -208,10 +217,10 @@ def train_model():
     joblib.dump(scaler, 'models/preprocessor.joblib')
     joblib.dump(feature_cols, 'models/feature_names.joblib')
     
-    print("✓ Model training complete!")
-    print(f"✓ Model saved: models/best_model.joblib")
-    print(f"✓ Scaler saved: models/preprocessor.joblib")
-    print(f"✓ Features saved: models/feature_names.joblib")
+    print("[OK] Model training complete!")
+    print(f"[OK] Model saved: models/best_model.joblib")
+    print(f"[OK] Scaler saved: models/preprocessor.joblib")
+    print(f"[OK] Features saved: models/feature_names.joblib")
     
     # Log model artifacts to W&B
     artifact = wandb.Artifact('burnout-model', type='model')

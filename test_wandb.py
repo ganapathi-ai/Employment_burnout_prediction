@@ -22,7 +22,7 @@ try:
         tags=["test", "integration"]
     )
     
-    print("\n✓ W&B initialized successfully!")
+    print("\n[OK] W&B initialized successfully!")
     print(f"  Run ID: {run.id}")
     print(f"  Run URL: {run.url}")
     
@@ -34,15 +34,15 @@ try:
             "loss": 0.5 - i * 0.05
         })
     
-    print("\n✓ Logged 5 test metrics")
+    print("\n[OK] Logged 5 test metrics")
     
     # Finish run
     run.finish()
-    print("\n✓ W&B test completed successfully!")
+    print("\n[OK] W&B test completed successfully!")
     print(f"\nView results at: https://wandb.ai/{os.getenv('WANDB_ENTITY', 'kakarlagana18-iihmr')}/burnout-test")
     
 except Exception as e:
-    print(f"\n✗ W&B test failed: {e}")
+    print(f"\n[FAIL] W&B test failed: {e}")
     print("\nTroubleshooting:")
     print("1. Check WANDB_API_KEY in .env")
     print("2. Run: wandb login")

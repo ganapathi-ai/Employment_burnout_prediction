@@ -1,0 +1,28 @@
+{
+  "os": "Windows-11-10.0.26200-SP0",
+  "python": "CPython 3.13.0",
+  "startedAt": "2026-02-14T06:10:29.790888Z",
+  "program": "c:\\Users\\lenovo\\Documents\\Employers_Burnout_prediction\\scripts\\train_model.py",
+  "codePath": "scripts\\train_model.py",
+  "codePathLocal": "scripts\\train_model.py",
+  "git": {
+    "remote": "https://github.com/ganapathi-ai/Employment_burnout_prediction.git",
+    "commit": "b743fca07f712b0903c87e65caa56a8fbd9a9878"
+  },
+  "email": "kakarlagana18@gmail.com",
+  "root": "c:\\Users\\lenovo\\Documents\\Employers_Burnout_prediction",
+  "host": "GANAPATHI-LENOVO",
+  "executable": "C:\\Users\\lenovo\\AppData\\Local\\Programs\\Python\\Python313\\python.exe",
+  "cpu_count": 16,
+  "cpu_count_logical": 22,
+  "disk": {
+    "/": {
+      "total": "1021821579264",
+      "used": "337854451712"
+    }
+  },
+  "memory": {
+    "total": "33752997888"
+  },
+  "writerId": "yg85b5ewzqc92qobmfeei5297nnbmz30"
+}

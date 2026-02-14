@@ -1,0 +1,127 @@
+_wandb:
+    value:
+        cli_version: 0.24.2
+        e:
+            v87g0ib4sj2oklfqqwk2mb9ba2clf6kh:
+                codePath: scripts\train_model.py
+                codePathLocal: scripts\train_model.py
+                cpu_count: 16
+                cpu_count_logical: 22
+                disk:
+                    /:
+                        total: "1021821579264"
+                        used: "337854861312"
+                email: kakarlagana18@gmail.com
+                executable: C:\Users\lenovo\AppData\Local\Programs\Python\Python313\python.exe
+                git:
+                    commit: b743fca07f712b0903c87e65caa56a8fbd9a9878
+                    remote: https://github.com/ganapathi-ai/Employment_burnout_prediction.git
+                host: GANAPATHI-LENOVO
+                memory:
+                    total: "33752997888"
+                os: Windows-11-10.0.26200-SP0
+                program: c:\Users\lenovo\Documents\Employers_Burnout_prediction\scripts\train_model.py
+                python: CPython 3.13.0
+                root: c:\Users\lenovo\Documents\Employers_Burnout_prediction
+                startedAt: "2026-02-14T06:11:02.870638Z"
+                writerId: v87g0ib4sj2oklfqqwk2mb9ba2clf6kh
+        m: []
+        python_version: 3.13.0
+        t:
+            "1":
+                - 5
+                - 6
+                - 53
+                - 105
+            "2":
+                - 5
+                - 6
+                - 53
+                - 105
+            "3":
+                - 2
+                - 15
+                - 16
+                - 62
+            "4": 3.13.0
+            "5": 0.24.2
+            "8":
+                - 2
+                - 3
+            "12": 0.24.2
+            "13": windows-amd64
+        visualize:
+            confusion_matrix:
+                panel_config:
+                    fieldSettings:
+                        Actual: Actual
+                        Predicted: Predicted
+                        nPredictions: nPredictions
+                    panelDefId: wandb/confusion_matrix/v1
+                    stringSettings:
+                        title: Confusion Matrix Curve
+                    transform:
+                        name: tableWithLeafColNames
+                    userQuery:
+                        queryFields:
+                            - args:
+                                - name: runSets
+                                  value: ${runSets}
+                              fields:
+                                - fields: []
+                                  name: id
+                                - fields: []
+                                  name: name
+                                - fields: []
+                                  name: _defaultColorIndex
+                                - args:
+                                    - name: tableKey
+                                      value: confusion_matrix_table
+                                  fields: []
+                                  name: summaryTable
+                              name: runSets
+                panel_type: Vega2
+            feature_importance:
+                panel_config:
+                    fieldSettings:
+                        label: feature
+                        value: importance
+                    panelDefId: wandb/bar/v0
+                    stringSettings:
+                        title: Feature Importance
+                    transform:
+                        name: tableWithLeafColNames
+                    userQuery:
+                        queryFields:
+                            - args:
+                                - name: runSets
+                                  value: ${runSets}
+                              fields:
+                                - fields: []
+                                  name: id
+                                - fields: []
+                                  name: name
+                                - fields: []
+                                  name: _defaultColorIndex
+                                - args:
+                                    - name: tableKey
+                                      value: feature_importance_table
+                                  fields: []
+                                  name: summaryTable
+                              name: runSets
+                panel_type: Vega2
+dataset:
+    value: work_from_home_burnout
+features:
+    value: 17
+models:
+    value:
+        - RandomForest
+        - GradientBoosting
+        - XGBoost
+n_estimators:
+    value: 100
+random_state:
+    value: 42
+test_size:
+    value: 0.2
