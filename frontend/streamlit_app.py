@@ -219,6 +219,10 @@ with tab1:
                             st.markdown("---")
                             st.markdown("### Engineered Features from API")
                             
+                            # Filter out non-numeric fields
+                            numeric_features = {k: v for k, v in api_features.items() 
+                                              if k not in ['name', 'user_id'] and isinstance(v, (int, float))}
+                            
                             # Create readable professional labels
                             feature_labels = {
                                 'work_hours': 'Work Hours (Daily)',
@@ -243,17 +247,14 @@ with tab1:
                                 'health_risk_score': 'Health Risk Score',
                                 'after_hours_work_hours_est': 'After-Hours Duration (Est.)',
                                 'high_workload_flag': 'High Workload Indicator',
-                                'poor_recovery_flag': 'Poor Recovery Indicator',
-                                'name': 'Employee Name',
-                                'user_id': 'Employee ID'
+                                'poor_recovery_flag': 'Poor Recovery Indicator'
                             }
                             
                             # Create DataFrame with readable labels
-                            feat_data = {feature_labels.get(k, k): [v] for k, v in api_features.items()}
+                            feat_data = {feature_labels.get(k, k): [float(v)] for k, v in numeric_features.items()}
                             feat_df = pd.DataFrame(feat_data).T
                             feat_df.columns = ['Value']
-                            feat_df = feat_df.round(2)
-                            st.table(feat_df)
+                            st.dataframe(feat_df.round(2))
 
                         st.markdown("---")
                         st.markdown("### Personalized Recommendations")
