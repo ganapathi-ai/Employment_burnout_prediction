@@ -119,7 +119,7 @@ with tab1:
     after_hours_work_hours_est = after_hours_num * (work_hours * 0.1)
     is_weekday = 1 if day_type == 'Weekday' else 0
     screen_time_per_meeting = screen_time / (meetings + 0.1)
-    work_hours_productivity = task_completion * (1 - (work_hours / 15)) * 100
+    work_hours_productivity = task_completion * (1 - (work_hours / 15))
     health_risk_score = np.clip(
         (1 - (sleep_hours / 8)) * 40 + max(0, fatigue_risk) * 10,
         0, 100
@@ -172,7 +172,7 @@ with tab1:
                         "user_id": user_id_input or None
                     }
                     
-                    response = requests.post(f"{API_URL}/predict", json=payload, timeout=10)
+                    response = requests.post(f"{API_URL}/predict", json=payload, timeout=60)
                     
                     if response.status_code == 200:
                         result = response.json()

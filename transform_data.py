@@ -65,7 +65,7 @@ df['burnout_score_normalized'] = ((df['burnout_score'] - min_burnout) / (max_bur
 df['screen_time_per_meeting'] = df['screen_time_hours'] / (df['meetings_count'] + 0.1)
 
 # 17. Work-Hours Productivity 
-df['work_hours_productivity'] = df['task_completion_rate'] * (1 - (df['work_hours'] / 15)) * 100
+df['work_hours_productivity'] = df['task_completion_rate'] * (1 - (df['work_hours'] / 15))
 
 # 18. Health Risk Score - combined sleep and fatigue metric (0-100)
 df['health_risk_score'] = np.clip(

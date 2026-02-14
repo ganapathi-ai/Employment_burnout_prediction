@@ -223,7 +223,7 @@ def engineer_features(data: UserData):
 
     # Additional derived metrics/flags for completeness
     screen_time_per_meeting = screen_time / (meetings + 0.1)
-    work_hours_productivity = task_rate * (1 - (work_hours / 15)) * 100
+    work_hours_productivity = task_rate * (1 - (work_hours / 15))
     health_risk_score = np.clip(
         (1 - (sleep / 8)) * 40 + max(0, fatigue_risk) * 10,
         0, 100
