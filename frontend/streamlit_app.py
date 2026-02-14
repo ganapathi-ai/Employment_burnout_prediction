@@ -312,12 +312,27 @@ with tab2:
             st.bar_chart(dist)
         
         with col2:
-            metrics = ['work_hours', 'sleep_hours', 'meetings_count']
+            # Rename columns for professional display
+            display_metrics = ['work_hours', 'sleep_hours', 'meetings_count']
             for extra in ['work_intensity_ratio', 'meeting_burden', 'break_adequacy',
                           'recovery_index', 'work_life_balance_score']:
                 if extra in df.columns:
-                    metrics.append(extra)
-            avg_metrics = df.groupby('burnout_risk')[metrics].mean()
+                    display_metrics.append(extra)
+            
+            # Create professional column names
+            column_rename = {
+                'work_hours': 'Work Hours',
+                'sleep_hours': 'Sleep Hours',
+                'meetings_count': 'Daily Meetings',
+                'work_intensity_ratio': 'Work Intensity',
+                'meeting_burden': 'Meeting Burden',
+                'break_adequacy': 'Break Adequacy',
+                'recovery_index': 'Recovery Index',
+                'work_life_balance_score': 'Work-Life Balance'
+            }
+            
+            avg_metrics = df.groupby('burnout_risk')[display_metrics].mean()
+            avg_metrics = avg_metrics.rename(columns=column_rename)
             st.bar_chart(avg_metrics)
         
         st.markdown("### Feature Correlations")
