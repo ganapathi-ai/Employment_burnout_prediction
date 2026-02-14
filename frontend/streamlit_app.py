@@ -214,7 +214,40 @@ with tab1:
                         if api_features:
                             st.markdown("---")
                             st.markdown("### Engineered Features from API")
-                            feat_df = pd.DataFrame.from_dict(api_features, orient='index', columns=['value'])
+                            
+                            # Create readable labels
+                            feature_labels = {
+                                'work_hours': 'Work Hours',
+                                'screen_time_hours': 'Screen Time Hours',
+                                'meetings_count': 'Meetings Count',
+                                'breaks_taken': 'Breaks Taken',
+                                'after_hours_work': 'After Hours Work',
+                                'sleep_hours': 'Sleep Hours',
+                                'task_completion_rate': 'Task Completion Rate',
+                                'is_weekday': 'Is Weekday',
+                                'work_intensity_ratio': 'Work Intensity Ratio',
+                                'meeting_burden': 'Meeting Burden',
+                                'break_adequacy': 'Break Adequacy',
+                                'sleep_deficit': 'Sleep Deficit',
+                                'recovery_index': 'Recovery Index',
+                                'fatigue_risk': 'Fatigue Risk',
+                                'workload_pressure': 'Workload Pressure',
+                                'task_efficiency': 'Task Efficiency',
+                                'work_life_balance_score': 'Work Life Balance Score',
+                                'screen_time_per_meeting': 'Screen Time Per Meeting',
+                                'work_hours_productivity': 'Work Hours Productivity',
+                                'health_risk_score': 'Health Risk Score',
+                                'after_hours_work_hours_est': 'After Hours Work Hours Est',
+                                'high_workload_flag': 'High Workload Flag',
+                                'poor_recovery_flag': 'Poor Recovery Flag',
+                                'name': 'Name',
+                                'user_id': 'User ID'
+                            }
+                            
+                            # Create DataFrame with readable labels
+                            feat_data = {feature_labels.get(k, k): [v] for k, v in api_features.items()}
+                            feat_df = pd.DataFrame(feat_data).T
+                            feat_df.columns = ['Value']
                             feat_df = feat_df.round(2)
                             st.table(feat_df)
 

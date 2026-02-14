@@ -79,13 +79,39 @@ DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./user_requests.db')
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 metadata = MetaData()
 
+from sqlalchemy import Float
+
 user_requests = Table(
     'user_requests', metadata,
     Column('id', Integer, primary_key=True, autoincrement=True),
     Column('user_id', String, nullable=True),
     Column('name', String, nullable=True),
     Column('created_at', DateTime, default=datetime.utcnow),
-    Column('data', JSON, nullable=False)
+    # Input features
+    Column('work_hours', Float, nullable=False),
+    Column('screen_time_hours', Float, nullable=False),
+    Column('meetings_count', Integer, nullable=False),
+    Column('breaks_taken', Integer, nullable=False),
+    Column('after_hours_work', Integer, nullable=False),
+    Column('sleep_hours', Float, nullable=False),
+    Column('task_completion_rate', Float, nullable=False),
+    Column('is_weekday', Integer, nullable=False),
+    # Engineered features
+    Column('work_intensity_ratio', Float),
+    Column('meeting_burden', Float),
+    Column('break_adequacy', Float),
+    Column('sleep_deficit', Float),
+    Column('recovery_index', Float),
+    Column('fatigue_risk', Float),
+    Column('workload_pressure', Float),
+    Column('task_efficiency', Float),
+    Column('work_life_balance_score', Float),
+    Column('screen_time_per_meeting', Float),
+    Column('work_hours_productivity', Float),
+    Column('health_risk_score', Float),
+    Column('after_hours_work_hours_est', Float),
+    Column('high_workload_flag', Integer),
+    Column('poor_recovery_flag', Integer)
 )
 
 # create table if missing
@@ -301,7 +327,29 @@ async def predict(user_data: UserData):
                 user_id=user_data.user_id,
                 name=user_data.name,
                 created_at=datetime.utcnow(),
-                data=all_features
+                work_hours=all_features['work_hours'],
+                screen_time_hours=all_features['screen_time_hours'],
+                meetings_count=all_features['meetings_count'],
+                breaks_taken=all_features['breaks_taken'],
+                after_hours_work=all_features['after_hours_work'],
+                sleep_hours=all_features['sleep_hours'],
+                task_completion_rate=all_features['task_completion_rate'],
+                is_weekday=all_features['is_weekday'],
+                work_intensity_ratio=all_features['work_intensity_ratio'],
+                meeting_burden=all_features['meeting_burden'],
+                break_adequacy=all_features['break_adequacy'],
+                sleep_deficit=all_features['sleep_deficit'],
+                recovery_index=all_features['recovery_index'],
+                fatigue_risk=all_features['fatigue_risk'],
+                workload_pressure=all_features['workload_pressure'],
+                task_efficiency=all_features['task_efficiency'],
+                work_life_balance_score=all_features['work_life_balance_score'],
+                screen_time_per_meeting=all_features['screen_time_per_meeting'],
+                work_hours_productivity=all_features['work_hours_productivity'],
+                health_risk_score=all_features['health_risk_score'],
+                after_hours_work_hours_est=all_features['after_hours_work_hours_est'],
+                high_workload_flag=all_features['high_workload_flag'],
+                poor_recovery_flag=all_features['poor_recovery_flag']
             )
             with engine.connect() as conn:
                 conn.execute(ins)
