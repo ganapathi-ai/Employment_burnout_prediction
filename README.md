@@ -336,7 +336,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## 🙏 Acknowledgments
 
 - Dataset: Work From Home Burnout Dataset
-- ML Framework: scikit-learn, XGBoost
+- ML Framework: scikit-learn, Random Forest
 - Web Frameworks: FastAPI, Streamlit
 - Deployment: Render, Neon
 - ML Tracking: Weights & Biases
