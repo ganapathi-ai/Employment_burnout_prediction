@@ -357,3 +357,5 @@ For questions or support:
 ---
 
 **Built with ❤️ using FastAPI, Streamlit, and Machine Learning**
+" #   T r i g g e r   f r e s h   d e p l o y m e n t "      
+ 
