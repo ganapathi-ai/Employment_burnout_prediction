@@ -131,6 +131,13 @@ with tab1:
     )
 
     # Display metrics
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Work Intensity", f"{work_intensity:.2f}", "High" if work_intensity > 1.2 else "Normal")
+    col2.metric("Meeting Load", f"{meeting_burden:.2f}", "Heavy" if meeting_burden > 0.5 else "Light")
+    col3.metric("Sleep Deficit", f"{sleep_deficit:.1f}h", "Critical" if sleep_deficit > 2 else "OK")
+    col4.metric("Recovery Index", f"{recovery_index:.1f}", "Poor" if recovery_index < 0 else "Good")
+
+    st.markdown("#### All Derived Metrics")
     derived_metrics = pd.DataFrame({
         'Metric': [
             'Work Intensity', 'Meeting Burden', 'Break Adequacy', 'Sleep Deficit',
@@ -140,22 +147,14 @@ with tab1:
             'Screen Time/Meeting', 'Work Hours Productivity', 'Health Risk Score'
         ],
         'Value': [
-            work_intensity, meeting_burden, break_adequacy, sleep_deficit,
-            recovery_index, workload_pressure, task_efficiency,
-            work_life_balance_score, fatigue_risk, high_workload_flag,
-            poor_recovery_flag, after_hours_work_hours_est, is_weekday,
-            screen_time_per_meeting, work_hours_productivity, health_risk_score
+            float(work_intensity), float(meeting_burden), float(break_adequacy), float(sleep_deficit),
+            float(recovery_index), float(workload_pressure), float(task_efficiency),
+            float(work_life_balance_score), float(fatigue_risk), float(high_workload_flag),
+            float(poor_recovery_flag), float(after_hours_work_hours_est), float(is_weekday),
+            float(screen_time_per_meeting), float(work_hours_productivity), float(health_risk_score)
         ]
     })
-
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Work Intensity", f"{work_intensity:.2f}", "High" if work_intensity > 1.2 else "Normal")
-    col2.metric("Meeting Load", f"{meeting_burden:.2f}", "Heavy" if meeting_burden > 0.5 else "Light")
-    col3.metric("Sleep Deficit", f"{sleep_deficit:.1f}h", "Critical" if sleep_deficit > 2 else "OK")
-    col4.metric("Recovery Index", f"{recovery_index:.1f}", "Poor" if recovery_index < 0 else "Good")
-
-    st.markdown("#### All Derived Metrics")
-    st.table(derived_metrics.set_index('Metric').round(2))
+    st.dataframe(derived_metrics.set_index('Metric').round(2))
     
     # Predict button
     if st.button("Analyze Burnout Risk", type="primary", use_container_width=True):
