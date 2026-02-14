@@ -287,6 +287,8 @@ async def predict(user_data: UserData):
     try:
         if MODEL is None:
             raise HTTPException(status_code=503, detail="Model not loaded")
+        if SCALER is None:
+            raise HTTPException(status_code=503, detail="Scaler not loaded")
 
         # Engineer features (returns tuple of model-ready array and full dict)
         features_array, all_features = engineer_features(user_data)
@@ -296,20 +298,23 @@ async def predict(user_data: UserData):
         all_features['name'] = user_data.name
         all_features['user_id'] = user_data.user_id
 
-        # Simple normalization (mean 0, avoid extreme values)
-        features_normalized = features_array.copy().astype(float)
-        features_normalized = np.clip(features_normalized, -10, 100)
-        logger.info("Features normalized")
+        # Scale features using trained scaler
+        try:
+            features_scaled = SCALER.transform(features_array)
+            logger.info("Features scaled using trained scaler")
+        except Exception as scale_err:
+            logger.error("Scaling failed: %s, using raw features", scale_err)
+            features_scaled = features_array
 
         # Predict with comprehensive error handling
         try:
-            logger.info("Making prediction with features shape: %s", features_normalized.shape)
-            prediction = MODEL.predict(features_normalized)[0]
+            logger.info("Making prediction with features shape: %s", features_scaled.shape)
+            prediction = MODEL.predict(features_scaled)[0]
             logger.info("Prediction made: %s", prediction)
 
             # Safely get probability
             try:
-                probability = MODEL.predict_proba(features_normalized)[0][1]
+                probability = MODEL.predict_proba(features_scaled)[0][1]
                 logger.info("Probability obtained: %s", probability)
             except Exception as proba_err:
                 logger.warning("predict_proba failed: %s, using fallback", proba_err)
