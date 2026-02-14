@@ -215,33 +215,33 @@ with tab1:
                             st.markdown("---")
                             st.markdown("### Engineered Features from API")
                             
-                            # Create readable labels
+                            # Create readable professional labels
                             feature_labels = {
-                                'work_hours': 'Work Hours',
-                                'screen_time_hours': 'Screen Time Hours',
-                                'meetings_count': 'Meetings Count',
+                                'work_hours': 'Work Hours (Daily)',
+                                'screen_time_hours': 'Screen Time (Hours)',
+                                'meetings_count': 'Daily Meetings',
                                 'breaks_taken': 'Breaks Taken',
-                                'after_hours_work': 'After Hours Work',
-                                'sleep_hours': 'Sleep Hours',
-                                'task_completion_rate': 'Task Completion Rate',
-                                'is_weekday': 'Is Weekday',
+                                'after_hours_work': 'After-Hours Work',
+                                'sleep_hours': 'Sleep Duration (Hours)',
+                                'task_completion_rate': 'Task Completion Rate (%)',
+                                'is_weekday': 'Weekday (1=Yes, 0=No)',
                                 'work_intensity_ratio': 'Work Intensity Ratio',
-                                'meeting_burden': 'Meeting Burden',
-                                'break_adequacy': 'Break Adequacy',
-                                'sleep_deficit': 'Sleep Deficit',
+                                'meeting_burden': 'Meeting Burden Index',
+                                'break_adequacy': 'Break Adequacy Score',
+                                'sleep_deficit': 'Sleep Deficit (Hours)',
                                 'recovery_index': 'Recovery Index',
-                                'fatigue_risk': 'Fatigue Risk',
-                                'workload_pressure': 'Workload Pressure',
-                                'task_efficiency': 'Task Efficiency',
-                                'work_life_balance_score': 'Work Life Balance Score',
-                                'screen_time_per_meeting': 'Screen Time Per Meeting',
-                                'work_hours_productivity': 'Work Hours Productivity',
+                                'fatigue_risk': 'Fatigue Risk Score',
+                                'workload_pressure': 'Workload Pressure Index',
+                                'task_efficiency': 'Task Efficiency Score',
+                                'work_life_balance_score': 'Work-Life Balance Score',
+                                'screen_time_per_meeting': 'Screen Time per Meeting',
+                                'work_hours_productivity': 'Productivity Score',
                                 'health_risk_score': 'Health Risk Score',
-                                'after_hours_work_hours_est': 'After Hours Work Hours Est',
-                                'high_workload_flag': 'High Workload Flag',
-                                'poor_recovery_flag': 'Poor Recovery Flag',
-                                'name': 'Name',
-                                'user_id': 'User ID'
+                                'after_hours_work_hours_est': 'After-Hours Duration (Est.)',
+                                'high_workload_flag': 'High Workload Indicator',
+                                'poor_recovery_flag': 'Poor Recovery Indicator',
+                                'name': 'Employee Name',
+                                'user_id': 'Employee ID'
                             }
                             
                             # Create DataFrame with readable labels
