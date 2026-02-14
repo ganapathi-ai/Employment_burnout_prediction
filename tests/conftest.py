@@ -45,5 +45,5 @@ def mock_model():
 @pytest.fixture(autouse=True)
 def mock_model_global(mock_model, monkeypatch):
     """Auto-use fixture to mock global model in api.main"""
-    monkeypatch.setattr("api.main.model", mock_model)
+    monkeypatch.setattr("api.main.MODEL", mock_model)
     return mock_model

@@ -47,14 +47,30 @@ htmlcov/
 .env.*.local
 
 # Models and data
-models/*.joblib
 data/processed/
 *.pkl
-*.joblib
 
 # Logs
 logs/
 *.log
+
+# W&B
+wandb/
+
+# Database
+*.db
+test_neon.db
+user_requests.db
+
+# Temporary files
+*.bat
+*.txt
+verify_*.py
+check_*.py
+test_*.py
+transform_data.py
+cleanup_*.py
+init_*.py
 
 # Docker
 .dockerignore
