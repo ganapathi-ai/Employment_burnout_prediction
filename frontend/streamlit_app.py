@@ -27,13 +27,17 @@ st.markdown("""
 
 # API Configuration
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
-if ENVIRONMENT == "production":
-    API_URL = os.getenv("API_URL")
-    if not API_URL:
-        st.error("API_URL not set!")
-        st.stop()
-else:
-    API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = os.getenv("API_URL", "http://localhost:8000")
+
+# Validate API connection
+try:
+    health_check = requests.get(f"{API_URL}/health", timeout=5)
+    if health_check.status_code != 200:
+        st.error(f"⚠️ Backend API is not healthy. Status: {health_check.status_code}")
+except requests.ConnectionError:
+    st.error(f"❌ Cannot connect to backend API at {API_URL}. Make sure the backend is running.")
+except Exception as e:
+    st.warning(f"⚠️ API health check failed: {str(e)}")
 
 # Header
 st.markdown('<p class="main-header">Employee Burnout Risk Analyzer</p>', unsafe_allow_html=True)
