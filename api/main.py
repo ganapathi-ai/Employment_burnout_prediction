@@ -160,31 +160,30 @@ def _load_model_sync():
         model_path = os.getenv('MODEL_PATH', 'models/best_model.joblib')
         scaler_path = os.getenv('PREPROCESSOR_PATH', 'models/preprocessor.joblib')
 
-        if os.path.exists(model_path):
-            MODEL = joblib.load(model_path)
-            logger.info("Model loaded from %s", model_path)
-        else:
-            logger.warning("Model file not found at %s, creating dummy model", model_path)
-            from sklearn.ensemble import RandomForestClassifier
-            MODEL = RandomForestClassifier(n_estimators=10, random_state=42)
-            x_dummy = np.random.rand(100, 17)
-            y_dummy = np.random.randint(0, 2, 100)
-            MODEL.fit(x_dummy, y_dummy)
-            logger.info("Dummy model trained and ready")
+        logger.info("Attempting to load model from: %s", model_path)
+        logger.info("Attempting to load scaler from: %s", scaler_path)
 
-        if os.path.exists(scaler_path):
-            SCALER = joblib.load(scaler_path)
-            logger.info("Scaler loaded from %s", scaler_path)
-        else:
-            logger.warning("Scaler file not found at %s, creating dummy scaler", scaler_path)
-            from sklearn.preprocessing import StandardScaler
-            SCALER = StandardScaler()
-            x_dummy = np.random.rand(100, 17)
-            SCALER.fit(x_dummy)
-            logger.info("Dummy scaler trained and ready")
+        if not os.path.exists(model_path):
+            logger.error("Model file not found at %s", model_path)
+            logger.error("Current working directory: %s", os.getcwd())
+            logger.error("Directory contents: %s", os.listdir('.'))
+            if os.path.exists('models'):
+                logger.error("Models directory contents: %s", os.listdir('models'))
+            raise FileNotFoundError(f"Model file not found: {model_path}")
 
-    except Exception as e:
-        logger.error("Error loading model/scaler: %s", e, exc_info=True)
+        if not os.path.exists(scaler_path):
+            logger.error("Scaler file not found at %s", scaler_path)
+            raise FileNotFoundError(f"Scaler file not found: {scaler_path}")
+
+        MODEL = joblib.load(model_path)
+        logger.info("✓ Model loaded successfully from %s", model_path)
+
+        SCALER = joblib.load(scaler_path)
+        logger.info("✓ Scaler loaded successfully from %s", scaler_path)
+
+    except FileNotFoundError as fnf_err:
+        logger.error("File not found error: %s", fnf_err)
+        logger.warning("Creating fallback dummy model for development/testing only")
         try:
             from sklearn.ensemble import RandomForestClassifier
             from sklearn.preprocessing import StandardScaler
@@ -194,9 +193,13 @@ def _load_model_sync():
             y_dummy = np.random.randint(0, 2, 100)
             MODEL.fit(x_dummy, y_dummy)
             SCALER.fit(x_dummy)
-            logger.info("Emergency: dummy models created")
+            logger.warning("⚠ Dummy model created - NOT FOR PRODUCTION USE")
         except Exception as fallback_err:
             logger.critical("Failed to create fallback models: %s", fallback_err)
+            raise
+    except Exception as e:
+        logger.error("Error loading model/scaler: %s", e, exc_info=True)
+        raise
 
 
 # Load model at import time

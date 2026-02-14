@@ -1,7 +1,4 @@
-# pylint: disable=too-many-locals,too-many-statements,unused-variable,line-too-long
-# pylint: disable=too-many-locals,too-many-statements,unused-variable,line-too-long,invalid-name
-# pylint: disable=logging-fstring-interpolation,invalid-name,redefined-outer-name
-# pylint: disable=logging-fstring-interpolation,wrong-import-order,import-outside-toplevel
+# pylint: disable=line-too-long,invalid-name,wrong-import-order
 #!/usr/bin/env python3
 """Train ML model with real burnout data and feature engineering"""
 import pandas as pd
@@ -12,7 +9,7 @@ from datetime import datetime
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, accuracy_score, roc_auc_score, confusion_matrix, precision_recall_curve
+from sklearn.metrics import classification_report, accuracy_score, roc_auc_score, confusion_matrix
 import xgboost as xgb
 import wandb
 
@@ -188,19 +185,19 @@ def train_model():
             class_names=['Low Risk', 'High Risk']
         )})
     except Exception as e:
-        print(f"Warning: Could not log confusion matrix: {e}")
+        print("Warning: Could not log confusion matrix: %s", e)
 
     # Create ROC curve
     try:
         wandb.log({"roc_curve": wandb.plot.roc_curve(y_test.values, y_proba)})
     except Exception as e:
-        print(f"Warning: Could not log ROC curve: {e}")
+        print("Warning: Could not log ROC curve: %s", e)
 
     # Create precision-recall curve
     try:
         wandb.log({"pr_curve": wandb.plot.pr_curve(y_test.values, y_proba)})
     except Exception as e:
-        print(f"Warning: Could not log PR curve: {e}")
+        print("Warning: Could not log PR curve: %s", e)
 
     # Feature importance
     if hasattr(best_model, 'feature_importances_'):
@@ -228,9 +225,9 @@ def train_model():
     joblib.dump(feature_cols, 'models/feature_names.joblib')
 
     print("[OK] Model training complete!")
-    print(f"[OK] Model saved: models/best_model.joblib")
-    print(f"[OK] Scaler saved: models/preprocessor.joblib")
-    print(f"[OK] Features saved: models/feature_names.joblib")
+    print("[OK] Model saved: models/best_model.joblib")
+    print("[OK] Scaler saved: models/preprocessor.joblib")
+    print("[OK] Features saved: models/feature_names.joblib")
 
     # Log model artifacts to W&B
     artifact = wandb.Artifact('burnout-model', type='model')

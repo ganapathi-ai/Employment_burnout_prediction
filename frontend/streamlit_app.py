@@ -1,11 +1,12 @@
+# pylint: disable=line-too-long,trailing-whitespace,invalid-name,wrong-import-order
 #!/usr/bin/env python3
 """Advanced Streamlit Dashboard for Burnout Risk Prediction"""
+import os
+from datetime import datetime
 import streamlit as st
 import requests
-import os
 import pandas as pd
 import numpy as np
-from datetime import datetime
 
 st.set_page_config(
     page_title="Burnout Risk Analyzer",
