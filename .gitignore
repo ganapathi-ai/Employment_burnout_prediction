@@ -64,10 +64,8 @@ user_requests.db
 
 # Temporary files
 *.bat
-*.txt
 verify_*.py
 check_*.py
-test_*.py
 transform_data.py
 cleanup_*.py
 init_*.py
