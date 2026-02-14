@@ -84,7 +84,15 @@ MEDIAN_MEETINGS: float | None = None
 
 # ---------- database setup ----------
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./user_requests.db')
-engine = create_engine(DATABASE_URL, echo=False, future=True)
+logger.info("DATABASE_URL configured: %s", DATABASE_URL[:50] + "..." if len(DATABASE_URL) > 50 else DATABASE_URL)
+
+try:
+    engine = create_engine(DATABASE_URL, echo=False, future=True)
+    logger.info("Database engine created successfully")
+except Exception as engine_err:
+    logger.error("Failed to create database engine: %s", engine_err)
+    engine = None
+
 metadata = MetaData()
 
 
@@ -122,11 +130,17 @@ user_requests = Table(
 )
 
 # create table if missing
-try:
-    metadata.create_all(engine)
-    logger.info('Database table initialized')
-except Exception as e:
-    logger.warning('Could not initialize database table: %s', e)
+if engine:
+    try:
+        metadata.create_all(engine)
+        logger.info("✓ Database table 'user_requests' initialized successfully")
+        # Test connection
+        with engine.connect() as conn:
+            logger.info("✓ Database connection test successful")
+    except Exception as e:
+        logger.error("✗ Database initialization failed: %s", e, exc_info=True)
+else:
+    logger.error("✗ No database engine - skipping table creation")
 
 # -------------------------------------
 
@@ -380,6 +394,31 @@ async def predict(user_data: UserData):
     except Exception as e:
         logger.error("Prediction error: %s", str(e))
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+
+@app.get("/db-status")
+async def db_status():
+    """Check database connection status"""
+    if not engine:
+        return {"status": "error", "message": "No database engine"}
+    
+    try:
+        with engine.connect() as conn:
+            from sqlalchemy import text
+            result = conn.execute(text("SELECT COUNT(*) FROM user_requests"))
+            count = result.scalar()
+            return {
+                "status": "connected",
+                "table_exists": True,
+                "row_count": count,
+                "database_url": DATABASE_URL[:50] + "..."
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "database_url": DATABASE_URL[:50] + "..."
+        }
 
 
 @app.get("/")
