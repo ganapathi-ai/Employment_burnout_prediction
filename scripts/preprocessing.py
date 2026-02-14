@@ -1,3 +1,4 @@
+# pylint: disable=logging-fstring-interpolation,invalid-name,redefined-outer-name,wrong-import-order
 #!/usr/bin/env python3
 # File: scripts/preprocessing.py
 

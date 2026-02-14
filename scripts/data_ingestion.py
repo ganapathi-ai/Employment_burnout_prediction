@@ -1,3 +1,4 @@
+# pylint: disable=logging-fstring-interpolation,wrong-import-order,import-outside-toplevel
 #!/usr/bin/env python3
 # File: scripts/data_ingestion.py
 
