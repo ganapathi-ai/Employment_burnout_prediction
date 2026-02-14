@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, model_validator
 import joblib
 import numpy as np
 import pandas as pd
+from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 from sqlalchemy import (
     create_engine, MetaData, Table, Column, Integer, String, DateTime, Float
 )
@@ -36,6 +37,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Prometheus metrics
+REQUEST_COUNT = Counter('api_requests_total', 'Total API requests', ['method', 'endpoint', 'status'])
+REQUEST_LATENCY = Histogram('api_request_duration_seconds', 'Request latency', ['method', 'endpoint'])
+PREDICTION_COUNT = Counter('predictions_total', 'Total predictions made', ['risk_level'])
+ACTIVE_REQUESTS = Gauge('api_active_requests', 'Number of active requests')
+MODEL_LOADED = Gauge('model_loaded', 'Whether model is loaded (1=yes, 0=no)')
+DB_OPERATIONS = Counter('database_operations_total', 'Database operations', ['operation', 'status'])
 
 
 class UserData(BaseModel):
@@ -219,6 +228,12 @@ def _load_model_sync():
 # Load model at import time
 _load_model_sync()
 
+# Set model loaded metric
+if MODEL is not None:
+    MODEL_LOADED.set(1)
+else:
+    MODEL_LOADED.set(0)
+
 
 def engineer_features(data: UserData):
     """Apply feature engineering to input data.
@@ -288,6 +303,7 @@ def engineer_features(data: UserData):
 @app.get("/health", response_model=HealthCheck)
 async def health_check():
     """Health check endpoint"""
+    REQUEST_COUNT.labels(method='GET', endpoint='/health', status='200').inc()
     return HealthCheck(
         status="healthy",
         timestamp=datetime.now().isoformat(),
@@ -298,10 +314,16 @@ async def health_check():
 @app.post("/predict", response_model=BurnoutPrediction)
 async def predict(user_data: UserData):
     """Make burnout risk prediction with feature engineering"""
+    import time
+    start_time = time.time()
+    ACTIVE_REQUESTS.inc()
+    
     try:
         if MODEL is None:
+            REQUEST_COUNT.labels(method='POST', endpoint='/predict', status='503').inc()
             raise HTTPException(status_code=503, detail="Model not loaded")
         if SCALER is None:
+            REQUEST_COUNT.labels(method='POST', endpoint='/predict', status='503').inc()
             raise HTTPException(status_code=503, detail="Scaler not loaded")
 
         # Engineer features (returns tuple of model-ready array and full dict)
@@ -342,12 +364,14 @@ async def predict(user_data: UserData):
             probability = 0.5
 
         risk_level = 'High' if prediction == 1 else 'Low'
+        PREDICTION_COUNT.labels(risk_level=risk_level).inc()
 
         logger.info("Prediction: %s (%.2f%%)", risk_level, probability * 100)
 
         # log to database (non-blocking failures)
         try:
             logger.info("Attempting to store data in database...")
+            DB_OPERATIONS.labels(operation='insert', status='attempt').inc()
             ins = user_requests.insert().values(
                 user_id=user_data.user_id,
                 name=user_data.name,
@@ -380,11 +404,17 @@ async def predict(user_data: UserData):
                 result = conn.execute(ins)
                 conn.commit()
                 logger.info("Request stored in DB with ID: %s", result.inserted_primary_key)
+                DB_OPERATIONS.labels(operation='insert', status='success').inc()
         except SQLAlchemyError as db_err:
             logger.error("DB insert failed: %s", db_err, exc_info=True)
+            DB_OPERATIONS.labels(operation='insert', status='error').inc()
         except Exception as db_exc:
             logger.error("Unexpected DB error: %s", db_exc, exc_info=True)
+            DB_OPERATIONS.labels(operation='insert', status='error').inc()
 
+        REQUEST_COUNT.labels(method='POST', endpoint='/predict', status='200').inc()
+        REQUEST_LATENCY.labels(method='POST', endpoint='/predict').observe(time.time() - start_time)
+        
         return BurnoutPrediction(
             risk_level=risk_level,
             risk_probability=float(probability),
@@ -393,7 +423,10 @@ async def predict(user_data: UserData):
         )
     except Exception as e:
         logger.error("Prediction error: %s", str(e))
+        REQUEST_COUNT.labels(method='POST', endpoint='/predict', status='500').inc()
         raise HTTPException(status_code=500, detail=str(e)) from e
+    finally:
+        ACTIVE_REQUESTS.dec()
 
 
 @app.get("/db-status")
@@ -435,7 +468,7 @@ async def root():
 @app.get("/metrics")
 async def metrics():
     """Prometheus metrics endpoint"""
-    return {"status": "metrics placeholder", "model_loaded": MODEL is not None}
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/favicon.ico", include_in_schema=False)
