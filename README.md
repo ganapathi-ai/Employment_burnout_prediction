@@ -2,7 +2,7 @@
 
 Advanced ML-powered system to predict employee burnout risk with interactive visualizations.
 
-## \ud83d\ude80 Features
+## 🚀 Features
 
 - **Real-time Predictions**: ML model with 17 engineered features
 - **Interactive Dashboard**: Gauge charts, bar charts, heatmaps
@@ -10,6 +10,7 @@ Advanced ML-powered system to predict employee burnout risk with interactive vis
 - **Analytics**: Dataset insights and correlations
 - **REST API**: FastAPI backend with health monitoring
 - **CI/CD**: Automated deployment with GitHub Actions
+- **ML Tracking**: Live experiment tracking with Weights & Biases
 
 ## \ud83d\udcca Tech Stack
 
@@ -34,6 +35,10 @@ pip install -r requirements.txt
 # Setup environment
 cp .env.example .env
 # Edit .env with your credentials
+
+# Setup W&B (optional)
+wandb login
+# Or set WANDB_API_KEY in .env
 
 # Train model
 python scripts/train_model.py
@@ -117,7 +122,7 @@ Best model selected automatically based on ROC-AUC score.
 - CORS configured properly
 - Secure API endpoints
 
-## \ud83e\uddea Testing
+## 🧪 Testing
 
 ```bash
 # Run all tests
@@ -125,6 +130,9 @@ pytest tests/ -v
 
 # With coverage
 pytest tests/ --cov=api --cov-report=html
+
+# Test W&B integration
+python test_wandb.py
 
 # Lint code
 flake8 api/ scripts/
@@ -151,11 +159,14 @@ pylint api/
 
 This project is for educational purposes.
 
-## \ud83d\udd17 Links
+## 🔗 Links
 
 - **Documentation**: See DEPLOYMENT.md
+- **W&B Guide**: See WANDB_GUIDE.md
+- **Code Verification**: See CODE_VERIFICATION_REPORT.md
 - **Issues**: GitHub Issues
 - **CI/CD**: GitHub Actions
+- **W&B Dashboard**: https://wandb.ai/kakarlagana18-iihmr
 
 ---
 

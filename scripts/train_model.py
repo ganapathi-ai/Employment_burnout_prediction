@@ -3,11 +3,13 @@
 import pandas as pd
 import numpy as np
 import joblib
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report, accuracy_score, roc_auc_score
+from sklearn.metrics import classification_report, accuracy_score, roc_auc_score, confusion_matrix, precision_recall_curve
 import xgboost as xgb
+import wandb
 
 def engineer_features(df):
     """Apply feature engineering transformations"""
@@ -41,11 +43,34 @@ def engineer_features(df):
 
 def train_model():
     """Train burnout prediction model with real data"""
+    # Initialize W&B
+    run = wandb.init(
+        entity=os.getenv('WANDB_ENTITY', 'kakarlagana18-iihmr'),
+        project="burnout-prediction",
+        config={
+            "dataset": "work_from_home_burnout",
+            "test_size": 0.2,
+            "random_state": 42,
+            "models": ["RandomForest", "GradientBoosting", "XGBoost"],
+            "n_estimators": 100,
+            "features": 17
+        },
+        tags=["burnout", "classification", "ensemble"]
+    )
+    
     print("Loading data...")
     df = pd.read_csv('data/work_from_home_burnout_dataset.csv')
     
     print(f"Dataset shape: {df.shape}")
     print(f"Burnout risk distribution:\n{df['burnout_risk'].value_counts()}")
+    
+    # Log dataset info to W&B
+    wandb.log({
+        "dataset_size": len(df),
+        "n_features": len(df.columns),
+        "high_risk_count": (df['burnout_risk'] == 'High').sum(),
+        "low_risk_count": (df['burnout_risk'] == 'Low').sum()
+    })
     
     # Engineer features
     print("\nEngineering features...")
@@ -100,9 +125,20 @@ def train_model():
         
         acc = accuracy_score(y_test, y_pred)
         auc = roc_auc_score(y_test, y_proba)
+        cm = confusion_matrix(y_test, y_pred)
         
         print(f"  Accuracy: {acc:.4f}")
         print(f"  ROC-AUC: {auc:.4f}")
+        
+        # Log metrics to W&B
+        wandb.log({
+            f"{name}_accuracy": acc,
+            f"{name}_roc_auc": auc,
+            f"{name}_true_positives": cm[1][1],
+            f"{name}_false_positives": cm[0][1],
+            f"{name}_true_negatives": cm[0][0],
+            f"{name}_false_negatives": cm[1][0]
+        })
         
         if auc > best_score:
             best_score = auc
@@ -111,10 +147,41 @@ def train_model():
     
     print(f"\n✓ Best model: {best_name} (ROC-AUC: {best_score:.4f})")
     
+    # Log best model
+    wandb.run.summary["best_model"] = best_name
+    wandb.run.summary["best_roc_auc"] = best_score
+    
     # Final evaluation
     y_pred = best_model.predict(X_test_scaled)
+    y_proba = best_model.predict_proba(X_test_scaled)[:, 1]
+    
     print("\nClassification Report:")
+    report = classification_report(y_test, y_pred, target_names=['Low Risk', 'High Risk'], output_dict=True)
     print(classification_report(y_test, y_pred, target_names=['Low Risk', 'High Risk']))
+    
+    # Log classification metrics
+    wandb.log({
+        "best_model_precision_high": report['High Risk']['precision'],
+        "best_model_recall_high": report['High Risk']['recall'],
+        "best_model_f1_high": report['High Risk']['f1-score'],
+        "best_model_precision_low": report['Low Risk']['precision'],
+        "best_model_recall_low": report['Low Risk']['recall'],
+        "best_model_f1_low": report['Low Risk']['f1-score']
+    })
+    
+    # Create confusion matrix plot
+    wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(
+        probs=None,
+        y_true=y_test.values,
+        preds=y_pred,
+        class_names=['Low Risk', 'High Risk']
+    )})
+    
+    # Create ROC curve
+    wandb.log({"roc_curve": wandb.plot.roc_curve(y_test, y_proba)})
+    
+    # Create precision-recall curve
+    wandb.log({"pr_curve": wandb.plot.pr_curve(y_test, y_proba)})
     
     # Feature importance
     if hasattr(best_model, 'feature_importances_'):
@@ -124,6 +191,16 @@ def train_model():
         }).sort_values('importance', ascending=False)
         print("\nTop 10 Important Features:")
         print(importance_df.head(10).to_string(index=False))
+        
+        # Log feature importance to W&B
+        wandb.log({"feature_importance": wandb.plot.bar(
+            wandb.Table(dataframe=importance_df),
+            "feature", "importance",
+            title="Feature Importance"
+        )})
+        
+        # Log as table
+        wandb.log({"feature_importance_table": wandb.Table(dataframe=importance_df)})
     
     # Save model and scaler
     print("\nSaving model and scaler...")
@@ -135,6 +212,16 @@ def train_model():
     print(f"✓ Model saved: models/best_model.joblib")
     print(f"✓ Scaler saved: models/preprocessor.joblib")
     print(f"✓ Features saved: models/feature_names.joblib")
+    
+    # Log model artifacts to W&B
+    artifact = wandb.Artifact('burnout-model', type='model')
+    artifact.add_file('models/best_model.joblib')
+    artifact.add_file('models/preprocessor.joblib')
+    artifact.add_file('models/feature_names.joblib')
+    wandb.log_artifact(artifact)
+    
+    # Finish W&B run
+    wandb.finish()
     
     return best_model, scaler, feature_cols
 
