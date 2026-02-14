@@ -2,12 +2,17 @@
 """FastAPI backend with feature engineering for burnout prediction"""
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator
 import joblib
 import numpy as np
+import pandas as pd
 import logging
 from datetime import datetime
 import os
+
+# database imports
+from sqlalchemy import create_engine, MetaData, Table, Column, Integer, String, DateTime, JSON
+from sqlalchemy.exc import SQLAlchemyError
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,12 +41,25 @@ class UserData(BaseModel):
     sleep_hours: float = Field(..., ge=0, le=12)
     task_completion_rate: float = Field(..., ge=0, le=100)
     day_type: str = Field(..., description="Weekday or Weekend")
+    # optional tracking fields
+    name: str | None = Field(None, description="Optional user name for tracking")
+    user_id: str | None = Field(None, description="Optional user ID for tracking")
+
+    from pydantic import model_validator
+
+    @model_validator(mode='after')
+    def require_name_or_userid(cls, values):
+        # `values` is a populated model instance after validation
+        if not (values.name or values.user_id):
+            raise ValueError('Either name or user_id must be provided')
+        return values
 
 class BurnoutPrediction(BaseModel):
     """Prediction output"""
     risk_level: str
     risk_probability: float
     timestamp: str
+    features: dict = Field(..., description="All input and derived metrics computed by the API")
 
 class HealthCheck(BaseModel):
     """Health check response"""
@@ -51,6 +69,50 @@ class HealthCheck(BaseModel):
 
 model = None
 scaler = None
+
+# medians used for flag calculations; loaded lazily
+median_hours: float | None = None
+median_meetings: float | None = None
+
+# ---------- database setup ----------
+DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./user_requests.db')
+engine = create_engine(DATABASE_URL, echo=False, future=True)
+metadata = MetaData()
+
+user_requests = Table(
+    'user_requests', metadata,
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('user_id', String, nullable=True),
+    Column('name', String, nullable=True),
+    Column('created_at', DateTime, default=datetime.utcnow),
+    Column('data', JSON, nullable=False)
+)
+
+# create table if missing
+try:
+    metadata.create_all(engine)
+    logger.info('✓ Database table initialized')
+except Exception as e:
+    logger.warning(f'Could not initialize database table: {e}')
+
+# -------------------------------------
+
+def _load_medians():
+    global median_hours, median_meetings
+    if median_hours is None or median_meetings is None:
+        try:
+            path = os.getenv('DATA_PATH', 'data/work_from_home_burnout_dataset.csv')
+            if not os.path.exists(path):
+                path = os.getenv('DATA_PATH', 'data/work_from_home_burnout_dataset_transformed.csv')
+            df = pd.read_csv(path)
+            median_hours = df['work_hours'].median()
+            median_meetings = df['meetings_count'].median()
+        except Exception:
+            median_hours = 8
+            median_meetings = 3
+
+# ensure medians are available early
+_load_medians()
 
 # Load model immediately at import (not just at startup)
 def _load_model_sync():
@@ -102,8 +164,14 @@ def _load_model_sync():
 _load_model_sync()
 
 def engineer_features(data: UserData):
-    """Apply feature engineering to input data"""
-    # Base features
+    """Apply feature engineering to input data.
+
+    Returns a tuple `(model_features, all_features_dict)`.  `model_features` is a
+    numpy array containing the 17 values expected by the ML model.  The dict
+    includes every input plus the additional derived metrics/flags so callers can
+    inspect them.
+    """
+    # Base inputs
     work_hours = data.work_hours
     screen_time = data.screen_time_hours
     meetings = data.meetings_count
@@ -112,8 +180,8 @@ def engineer_features(data: UserData):
     sleep = data.sleep_hours
     task_rate = data.task_completion_rate
     is_weekday = 1 if data.day_type.lower() == "weekday" else 0
-    
-    # Engineered features
+
+    # Primary engineered features (used by model)
     work_intensity_ratio = screen_time / (work_hours + 0.1)
     meeting_burden = meetings / (work_hours + 0.1)
     break_adequacy = breaks / (work_hours + 0.1)
@@ -126,15 +194,52 @@ def engineer_features(data: UserData):
         ((sleep / 8) * 30 + (breaks / 5) * 30 - (work_hours / 10) * 20 - after_hours * 10) * 2,
         0, 100
     )
-    
-    # Return feature array in correct order
-    features = [
+
+    # Additional derived metrics/flags for completeness
+    screen_time_per_meeting = screen_time / (meetings + 0.1)
+    work_hours_productivity = task_rate * (1 - (work_hours / 15)) * 100
+    health_risk_score = np.clip(
+        (1 - (sleep / 8)) * 40 + max(0, fatigue_risk) * 10,
+        0, 100
+    )
+    after_hours_work_hours_est = after_hours * (work_hours * 0.1)
+    high_workload_flag = int((work_hours > median_hours) and (meetings > median_meetings))
+    poor_recovery_flag = int((sleep < 6) and (recovery_index < 0))
+
+    # features array for model (maintain existing order)
+    model_feats = [
         work_hours, screen_time, meetings, breaks, after_hours, sleep, task_rate, is_weekday,
         work_intensity_ratio, meeting_burden, break_adequacy, sleep_deficit,
         recovery_index, fatigue_risk, workload_pressure, task_efficiency, work_life_balance_score
     ]
-    
-    return np.array([features])
+
+    all_feats = {
+        'work_hours': work_hours,
+        'screen_time_hours': screen_time,
+        'meetings_count': meetings,
+        'breaks_taken': breaks,
+        'after_hours_work': after_hours,
+        'sleep_hours': sleep,
+        'task_completion_rate': task_rate,
+        'is_weekday': is_weekday,
+        'work_intensity_ratio': work_intensity_ratio,
+        'meeting_burden': meeting_burden,
+        'break_adequacy': break_adequacy,
+        'sleep_deficit': sleep_deficit,
+        'recovery_index': recovery_index,
+        'fatigue_risk': fatigue_risk,
+        'workload_pressure': workload_pressure,
+        'task_efficiency': task_efficiency,
+        'work_life_balance_score': work_life_balance_score,
+        'screen_time_per_meeting': screen_time_per_meeting,
+        'work_hours_productivity': work_hours_productivity,
+        'health_risk_score': health_risk_score,
+        'after_hours_work_hours_est': after_hours_work_hours_est,
+        'high_workload_flag': high_workload_flag,
+        'poor_recovery_flag': poor_recovery_flag
+    }
+
+    return np.array([model_feats]), all_feats
 
 @app.get("/health", response_model=HealthCheck)
 async def health_check():
@@ -152,14 +257,16 @@ async def predict(user_data: UserData):
         if model is None:
             raise HTTPException(status_code=503, detail="Model not loaded")
         
-        # Engineer features
-        features = engineer_features(user_data)
-        logger.info(f"Features shape: {features.shape}")
+        # Engineer features (returns tuple of model-ready array and full dict)
+        features_array, all_features = engineer_features(user_data)
+        logger.info(f"Raw model feature array shape: {features_array.shape}")
+
+        # add tracking info to features dict for storage
+        all_features['name'] = user_data.name
+        all_features['user_id'] = user_data.user_id
         
         # Simple normalization (mean 0, avoid extreme values)
-        # This is safer than relying on external scaler
-        features_normalized = features.copy().astype(float)
-        # Clip extreme values to reasonable ranges
+        features_normalized = features_array.copy().astype(float)
         features_normalized = np.clip(features_normalized, -10, 100)
         logger.info(f"Features normalized")
         
@@ -175,7 +282,6 @@ async def predict(user_data: UserData):
                 logger.info(f"Probability obtained: {probability}")
             except Exception as proba_err:
                 logger.warning(f"predict_proba failed: {proba_err}, using fallback")
-                # Fallback to simple probability based on prediction
                 probability = 0.7 if prediction == 1 else 0.3
                 
         except Exception as pred_err:
@@ -188,11 +294,27 @@ async def predict(user_data: UserData):
         risk_level = 'High' if prediction == 1 else 'Low'
         
         logger.info(f"✓ Prediction: {risk_level} ({probability:.2%})")
-        
+
+        # log to database (non-blocking failures)
+        try:
+            ins = user_requests.insert().values(
+                user_id=user_data.user_id,
+                name=user_data.name,
+                created_at=datetime.utcnow(),
+                data=all_features
+            )
+            with engine.connect() as conn:
+                conn.execute(ins)
+                conn.commit()
+            logger.info("✓ Request stored in DB")
+        except SQLAlchemyError as db_err:
+            logger.warning(f"DB insert failed: {db_err}")
+
         return BurnoutPrediction(
             risk_level=risk_level,
             risk_probability=float(probability),
-            timestamp=datetime.now().isoformat()
+            timestamp=datetime.now().isoformat(),
+            features=all_features
         )
     except Exception as e:
         logger.error(f"✗ Prediction error: {str(e)}")

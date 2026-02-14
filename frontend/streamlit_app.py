@@ -4,6 +4,7 @@ import streamlit as st
 import requests
 import os
 import pandas as pd
+import numpy as np
 from datetime import datetime
 
 # previously used Plotly for charts; switched to Streamlit natives
@@ -72,7 +73,11 @@ with tab1:
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.markdown("**⏰ Work Schedule**")
+        st.markdown("**⏰ Work Schedule & Identity**")
+        name = st.text_input("Name (optional)", "",
+                              help="Provide a name for tracking, optional but either name or user ID is required.")
+        user_id_input = st.text_input("User ID (optional)", "",
+                                     help="Provide a user identifier if you prefer. Name/user ID must not both be empty.")
         work_hours = st.slider("Work Hours/Day", 0.0, 24.0, 8.0, 0.5, 
                                help="Total hours worked per day")
         screen_time = st.slider("Screen Time (hrs)", 0.0, 24.0, 6.0, 0.5,
@@ -97,14 +102,81 @@ with tab1:
     
     st.markdown("---")
     
-    # Calculate derived metrics
-    work_intensity = screen_time / (work_hours + 0.1)
-    meeting_burden = meetings / (work_hours + 0.1)
-    break_adequacy = breaks / (work_hours + 0.1)
-    sleep_deficit = 8 - sleep_hours
-    recovery_index = (sleep_hours + breaks) - screen_time
+    # require at least one identifier
+    if not name and not user_id_input:
+        st.warning("Please provide either a Name or User ID for tracking. This field is optional but one is required.")
     
-    # Display quick insights
+    # load dataset medians for flag thresholds (used later)
+    dataset_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'work_from_home_burnout_dataset.csv')
+    try:
+        df_all = pd.read_csv(dataset_path)
+        median_hours = df_all['work_hours'].median()
+        median_meetings = df_all['meetings_count'].median()
+    except Exception:
+        # fallbacks if dataset not available
+        median_hours = 8
+        median_meetings = 3
+
+    # Calculate derived metrics (mirrors transform_data.py logic)
+    # 1. Work Intensity Ratio - screen time vs actual work hours
+    work_intensity = screen_time / (work_hours + 0.1)
+    # 2. Meeting Burden - meetings per work hour
+    meeting_burden = meetings / (work_hours + 0.1)
+    # 3. Break Adequacy - breaks relative to work duration
+    break_adequacy = breaks / (work_hours + 0.1)
+    # 4. Sleep Deficit - how far from recommended 8 hours
+    sleep_deficit = 8 - sleep_hours
+    # 5. Recovery Index - total recovery time vs screen exposure
+    recovery_index = (sleep_hours + breaks) - screen_time
+    # 6. Workload Pressure - combined demand metric
+    after_hours_num = int(after_hours)
+    workload_pressure = work_hours + (meetings * 0.25) + after_hours_num
+    # 7. Task Efficiency - completion rate per work hour
+    task_efficiency = task_completion / (work_hours + 0.1)
+    # 8. Work-Life Balance Score (0-100)
+    work_life_balance_score = np.clip(
+        ((sleep_hours / 8) * 30 + (breaks / 5) * 30 - (work_hours / 10) * 20 - after_hours_num * 10) * 2,
+        0, 100
+    )
+    # 9. Fatigue Risk - screen exposure vs recovery
+    fatigue_risk = screen_time - (sleep_hours * 1.5)
+    # 10. High Workload Flag
+    high_workload_flag = int((work_hours > median_hours) and (meetings > median_meetings))
+    # 11. Poor Recovery Flag
+    poor_recovery_flag = int((sleep_hours < 6) and (recovery_index < 0))
+    # 12. After‑hours work intensity estimate
+    after_hours_work_hours_est = after_hours_num * (work_hours * 0.1)
+    # 13. Day type numeric
+    is_weekday = 1 if day_type == 'Weekday' else 0
+    # 14. Screen Time per Meeting
+    screen_time_per_meeting = screen_time / (meetings + 0.1)
+    # 15. Work-Hours Productivity
+    work_hours_productivity = task_completion * (1 - (work_hours / 15)) * 100
+    # 16. Health Risk Score (0-100)
+    health_risk_score = np.clip(
+        (1 - (sleep_hours / 8)) * 40 + max(0, fatigue_risk) * 10,
+        0, 100
+    )
+
+    # collate metrics for display
+    derived_metrics = pd.DataFrame({
+        'Metric': [
+            'Work Intensity', 'Meeting Burden', 'Break Adequacy', 'Sleep Deficit',
+            'Recovery Index', 'Workload Pressure', 'Task Efficiency',
+            'Work-Life Balance Score', 'Fatigue Risk', 'High Workload Flag',
+            'Poor Recovery Flag', 'After-hours Intensity', 'Day is Weekday',
+            'Screen Time/Meeting', 'Work Hours Productivity', 'Health Risk Score'
+        ],
+        'Value': [
+            work_intensity, meeting_burden, break_adequacy, sleep_deficit,
+            recovery_index, workload_pressure, task_efficiency,
+            work_life_balance_score, fatigue_risk, high_workload_flag,
+            poor_recovery_flag, after_hours_work_hours_est, is_weekday,
+            screen_time_per_meeting, work_hours_productivity, health_risk_score
+        ]
+    })
+
+    # Display quick insights (top 4) and then full table below
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Work Intensity", f"{work_intensity:.2f}", 
                 "High" if work_intensity > 1.2 else "Normal")
@@ -114,21 +186,29 @@ with tab1:
                 "Critical" if sleep_deficit > 2 else "OK")
     col4.metric("Recovery Index", f"{recovery_index:.1f}",
                 "Poor" if recovery_index < 0 else "Good")
+
+    st.markdown("#### All Derived Metrics")
+    st.table(derived_metrics.set_index('Metric').round(2))
     
     # Predict button
     if st.button("🔮 Analyze Burnout Risk", type="primary", use_container_width=True):
-        with st.spinner("Analyzing your data..."):
-            try:
-                payload = {
-                    "work_hours": work_hours,
-                    "screen_time_hours": screen_time,
-                    "meetings_count": meetings,
-                    "breaks_taken": breaks,
-                    "after_hours_work": int(after_hours),
-                    "sleep_hours": sleep_hours,
-                    "task_completion_rate": task_completion,
-                    "day_type": day_type
-                }
+        if not name and not user_id_input:
+            st.error("Cannot analyze without at least a name or user ID.")
+        else:
+            with st.spinner("Analyzing your data..."):
+                try:
+                    payload = {
+                        "work_hours": work_hours,
+                        "screen_time_hours": screen_time,
+                        "meetings_count": meetings,
+                        "breaks_taken": breaks,
+                        "after_hours_work": int(after_hours),
+                        "sleep_hours": sleep_hours,
+                        "task_completion_rate": task_completion,
+                        "day_type": day_type,
+                        "name": name or None,
+                        "user_id": user_id_input or None
+                    }
                 
                 response = requests.post(f"{API_URL}/predict", json=payload, timeout=10)
                 
@@ -136,6 +216,7 @@ with tab1:
                     result = response.json()
                     risk_level = result["risk_level"]
                     risk_prob = result["risk_probability"] * 100
+                    api_features = result.get("features", {})
                     
                     # Display results
                     st.success("✅ Analysis Complete!")
@@ -172,6 +253,22 @@ with tab1:
                         st.metric("Probability", f"{risk_prob:.1f}%")
                         st.caption(f"Analyzed at {datetime.now().strftime('%H:%M:%S')}")
                     
+                    # show API-derived features in a table
+                    if api_features:
+                        st.markdown("---")
+                        st.markdown("### 🔍 Engineered Features from API")
+                        feat_df = pd.DataFrame.from_dict(api_features, orient='index', columns=['value'])
+                        feat_df = feat_df.round(2)
+                        st.table(feat_df)
+                        # override local variables for recommendation logic if desired
+                        work_hours = api_features.get('work_hours', work_hours)
+                        screen_time = api_features.get('screen_time_hours', screen_time)
+                        meetings = api_features.get('meetings_count', meetings)
+                        sleep_hours = api_features.get('sleep_hours', sleep_hours)
+                        breaks = api_features.get('breaks_taken', breaks)
+                        after_hours = bool(api_features.get('after_hours_work', after_hours))
+                        recovery_index = api_features.get('recovery_index', recovery_index)
+
                     # Recommendations
                     st.markdown("---")
                     st.markdown("### 💡 Personalized Recommendations")
@@ -224,7 +321,10 @@ with tab2:
     try:
         # ensure we load dataset relative to this file, not the cwd
         base = os.path.dirname(__file__)
-        df_path = os.path.join(base, '..', 'data', 'work_from_home_burnout_dataset.csv')
+        # prefer transformed dataset if available
+        df_path = os.path.join(base, '..', 'data', 'work_from_home_burnout_dataset_transformed.csv')
+        if not os.path.exists(df_path):
+            df_path = os.path.join(base, '..', 'data', 'work_from_home_burnout_dataset.csv')
         df = pd.read_csv(df_path)
         
         col1, col2 = st.columns(2)
@@ -235,14 +335,26 @@ with tab2:
             st.bar_chart(dist)
         
         with col2:
-            # Average metrics by risk
-            avg_metrics = df.groupby('burnout_risk')[['work_hours', 'sleep_hours', 'meetings_count']].mean()
+            # Average metrics by risk (include some derived features if present)
+            metrics = ['work_hours', 'sleep_hours', 'meetings_count']
+            for extra in ['work_intensity_ratio', 'meeting_burden', 'break_adequacy',
+                          'recovery_index', 'work_life_balance_score']:
+                if extra in df.columns:
+                    metrics.append(extra)
+            avg_metrics = df.groupby('burnout_risk')[metrics].mean()
             st.bar_chart(avg_metrics)
         
         # Correlation heatmap
         st.markdown("### 🔥 Feature Correlations")
         numeric_cols = ['work_hours', 'screen_time_hours', 'meetings_count', 'breaks_taken', 
                        'sleep_hours', 'task_completion_rate', 'burnout_score']
+        # add any additional numeric derived cols
+        for extra in ['work_intensity_ratio', 'meeting_burden', 'break_adequacy',
+                      'sleep_deficit', 'recovery_index', 'workload_pressure',
+                      'task_efficiency', 'work_life_balance_score', 'fatigue_risk',
+                      'health_risk_score']:
+            if extra in df.columns:
+                numeric_cols.append(extra)
         corr = df[numeric_cols].corr()
         st.write(corr)
         

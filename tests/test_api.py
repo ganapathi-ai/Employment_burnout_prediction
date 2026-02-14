@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 # File: tests/test_api.py
 
+import os
 import pytest
 from fastapi.testclient import TestClient
-from api.main import app
+
+# ensure tests use an in-memory SQLite database
+os.environ.setdefault('DATABASE_URL', 'sqlite:///:memory:')
+
+from api.main import app, engine, user_requests
 
 client = TestClient(app)
 
@@ -15,7 +20,8 @@ VALID_DATA = {
     "after_hours_work": 0,
     "sleep_hours": 7.5,
     "task_completion_rate": 85.0,
-    "day_type": "Weekday"
+    "day_type": "Weekday",
+    "name": "Test User"
 }
 
 
@@ -42,11 +48,40 @@ class TestPredictEndpoint:
         assert "risk_level" in data
         assert "risk_probability" in data
         assert data["risk_level"] in ["Low", "High"]
+        # new field with full feature set
+        assert "features" in data
+        assert isinstance(data["features"], dict)
+        # basic sanity checks on feature content
+        assert "work_hours" in data["features"]
+        assert "work_intensity_ratio" in data["features"]
+        # additional engineered values added recently
+        assert "meeting_burden" in data["features"]
+        assert "health_risk_score" in data["features"]
+        assert "high_workload_flag" in data["features"]
+        assert "poor_recovery_flag" in data["features"]
 
     def test_predict_probability_range(self):
         response = client.post("/predict", json=VALID_DATA)
         data = response.json()
         assert 0 <= data["risk_probability"] <= 1
+
+    def test_db_insertion(self):
+        # count rows before
+        with engine.connect() as conn:
+            before_rows = conn.execute(user_requests.select()).fetchall()
+            before = len(before_rows)
+        response = client.post("/predict", json=VALID_DATA)
+        assert response.status_code == 200
+        # count after insertion
+        with engine.connect() as conn:
+            after_rows = conn.execute(user_requests.select()).fetchall()
+            after = len(after_rows)
+            rows = conn.execute(user_requests.select().order_by(user_requests.c.id.desc()).limit(1)).fetchall()
+        assert after == before + 1
+        # the latest row should contain our name or user_id
+        assert rows, "no rows returned"
+        latest = rows[0]
+        assert latest.name == VALID_DATA["name"] or latest.user_id == VALID_DATA.get("user_id")
 
     def test_predict_missing_field(self):
         invalid = VALID_DATA.copy()
