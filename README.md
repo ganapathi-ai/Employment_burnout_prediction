@@ -345,4 +345,15 @@ For questions or support:
 
 ---
 
+**Built with ❤️ using FastAPI, Streamlit, and Machine Learning**iases
+
+## 📧 Contact
+
+For questions or support:
+- Open an [Issue](https://github.com/ganapathi-ai/Employment_burnout_prediction/issues)
+- Check [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
+- Review [Documentation](#-complete-documentation)
+
+---
+
 **Built with ❤️ using FastAPI, Streamlit, and Machine Learning**
