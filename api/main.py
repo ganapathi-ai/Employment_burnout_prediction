@@ -414,7 +414,7 @@ async def predict(user_data: UserData):
 
         REQUEST_COUNT.labels(method='POST', endpoint='/predict', status='200').inc()
         REQUEST_LATENCY.labels(method='POST', endpoint='/predict').observe(time.time() - start_time)
-        
+
         return BurnoutPrediction(
             risk_level=risk_level,
             risk_probability=float(probability),
@@ -434,7 +434,7 @@ async def db_status():
     """Check database connection status"""
     if not engine:
         return {"status": "error", "message": "No database engine"}
-    
+
     try:
         with engine.connect() as conn:
             from sqlalchemy import text

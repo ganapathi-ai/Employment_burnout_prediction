@@ -8,28 +8,65 @@ on:
     branches: [ main, develop ]
 
 jobs:
-  deploy-frontend:
+  lint-and-test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        # install project requirements (Plotly was removed)
         pip install -r requirements.txt
-    
-    - name: Check Streamlit syntax
+
+    - name: Lint with Flake8
+      run: |
+        flake8 frontend/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 frontend/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
+
+    - name: Lint with Pylint
+      run: |
+        pylint frontend/streamlit_app.py --exit-zero --fail-under=6.0
+
+    - name: Check Streamlit syntax (compile)
       run: |
         python -m py_compile frontend/streamlit_app.py
-    
+        echo "✅ Streamlit syntax check passed"
+
+    - name: Run frontend import test
+      run: |
+        python -c "
+        import ast, sys
+        with open('frontend/streamlit_app.py') as f:
+            source = f.read()
+        try:
+            ast.parse(source)
+            print('✅ Frontend AST parse passed')
+        except SyntaxError as e:
+            print(f'❌ Syntax error: {e}')
+            sys.exit(1)
+        "
+
+  deploy-frontend:
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
     - name: Deploy Frontend to Render
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         curl -X POST "${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}"
+        echo "✅ Frontend deployment triggered"

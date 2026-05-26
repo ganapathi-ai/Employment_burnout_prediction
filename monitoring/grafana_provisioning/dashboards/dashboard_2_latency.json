@@ -1,0 +1,112 @@
+{
+  "annotations": {"list": [{"builtIn": 1, "datasource": {"type": "grafana", "uid": "-- Grafana --"}, "enable": true, "hide": true, "iconColor": "rgba(0, 211, 255, 1)", "name": "Annotations & Alerts", "type": "dashboard"}]},
+  "description": "Dashboard 2 — API response time, P50/P95/P99 latency percentiles, performance analysis",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "id": 100,
+      "title": "⚡ Latency Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.2}, {"color": "red", "value": 1.0}]}, "unit": "s"}},
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 1},
+      "id": 1,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "auto"},
+      "title": "P50 (Median) Latency",
+      "type": "stat",
+      "targets": [{"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.50, rate(api_request_duration_seconds_bucket{endpoint=\"/predict\"}[5m]))", "legendFormat": "P50", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.5}, {"color": "red", "value": 2.0}]}, "unit": "s"}},
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 1},
+      "id": 2,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "auto"},
+      "title": "P95 Latency",
+      "type": "stat",
+      "targets": [{"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.95, rate(api_request_duration_seconds_bucket{endpoint=\"/predict\"}[5m]))", "legendFormat": "P95", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1.0}, {"color": "red", "value": 3.0}]}, "unit": "s"}},
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 1},
+      "id": 3,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "auto"},
+      "title": "P99 Latency",
+      "type": "stat",
+      "targets": [{"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.99, rate(api_request_duration_seconds_bucket{endpoint=\"/predict\"}[5m]))", "legendFormat": "P99", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 0.3}, {"color": "red", "value": 1.0}]}, "unit": "s"}},
+      "gridPos": {"h": 4, "w": 6, "x": 18, "y": 1},
+      "id": 4,
+      "options": {"colorMode": "value", "graphMode": "area", "justifyMode": "center", "reduceOptions": {"calcs": ["lastNotNull"]}, "textMode": "auto"},
+      "title": "Average Latency",
+      "type": "stat",
+      "targets": [{"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "rate(api_request_duration_seconds_sum{endpoint=\"/predict\"}[5m]) / rate(api_request_duration_seconds_count{endpoint=\"/predict\"}[5m])", "legendFormat": "Avg", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {
+        "defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 2, "fillOpacity": 10, "gradientMode": "opacity"}, "unit": "s"},
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "P99"}, "properties": [{"id": "color", "value": {"fixedColor": "red", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "P95"}, "properties": [{"id": "color", "value": {"fixedColor": "orange", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "P50 (Median)"}, "properties": [{"id": "color", "value": {"fixedColor": "green", "mode": "fixed"}}]},
+          {"matcher": {"id": "byName", "options": "Average"}, "properties": [{"id": "color", "value": {"fixedColor": "blue", "mode": "fixed"}}]}
+        ]
+      },
+      "gridPos": {"h": 10, "w": 16, "x": 0, "y": 5},
+      "id": 10,
+      "options": {"legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Response Time Percentiles — /predict Endpoint",
+      "type": "timeseries",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.50, rate(api_request_duration_seconds_bucket{endpoint=\"/predict\"}[5m]))", "legendFormat": "P50 (Median)", "refId": "A"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.95, rate(api_request_duration_seconds_bucket{endpoint=\"/predict\"}[5m]))", "legendFormat": "P95", "refId": "B"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.99, rate(api_request_duration_seconds_bucket{endpoint=\"/predict\"}[5m]))", "legendFormat": "P99", "refId": "C"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "rate(api_request_duration_seconds_sum{endpoint=\"/predict\"}[5m]) / rate(api_request_duration_seconds_count{endpoint=\"/predict\"}[5m])", "legendFormat": "Average", "refId": "D"}
+      ]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "thresholds"}, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 1.0}, {"color": "red", "value": 3.0}]}, "unit": "s", "min": 0, "max": 5}},
+      "gridPos": {"h": 10, "w": 8, "x": 16, "y": 5},
+      "id": 11,
+      "options": {"minVizHeight": 75, "minVizWidth": 75, "orientation": "auto", "reduceOptions": {"calcs": ["lastNotNull"]}, "showThresholdLabels": true, "showThresholdMarkers": true},
+      "title": "P99 Latency Gauge (SLO: <3s)",
+      "type": "gauge",
+      "targets": [{"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.99, rate(api_request_duration_seconds_bucket{endpoint=\"/predict\"}[5m]))", "legendFormat": "P99 Latency", "refId": "A"}]
+    },
+    {
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "fieldConfig": {"defaults": {"color": {"mode": "palette-classic"}, "custom": {"lineWidth": 2, "fillOpacity": 10}, "unit": "s"}},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 15},
+      "id": 12,
+      "options": {"legend": {"calcs": ["mean", "max", "lastNotNull"], "displayMode": "table", "placement": "bottom"}, "tooltip": {"mode": "multi", "sort": "desc"}},
+      "title": "Latency by Endpoint Comparison",
+      "type": "timeseries",
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.95, rate(api_request_duration_seconds_bucket{endpoint=\"/predict\"}[5m]))", "legendFormat": "/predict P95", "refId": "A"},
+        {"datasource": {"type": "prometheus", "uid": "prometheus"}, "expr": "histogram_quantile(0.95, rate(api_request_duration_seconds_bucket{endpoint=\"/health\"}[5m]))", "legendFormat": "/health P95", "refId": "B"}
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "tags": ["burnout", "latency", "performance"],
+  "time": {"from": "now-30m", "to": "now"},
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Dashboard 2 — Latency & Performance",
+  "uid": "burnout-latency",
+  "version": 1
+}
