@@ -274,10 +274,20 @@ def train_with_tuning():
             'feature': feature_cols,
             'importance': best_model.feature_importances_
         }).sort_values('importance', ascending=False)
+        importance_df = importance_df.reset_index(drop=True)
         print("\nTop 10 Important Features:")
         print(importance_df.head(10).to_string(index=False))
 
-        wandb.log({"feature_importance_table": wandb.Table(dataframe=importance_df)})
+        # Custom bar chart in W&B
+        wandb.log({"best/feature_importance_chart": wandb.plot.bar(
+            wandb.Table(dataframe=importance_df),
+            "feature",
+            "importance",
+            title="Feature Importance — Best Tuned Model"
+        )})
+
+        # Table for full details
+        wandb.log({"best/feature_importance_table": wandb.Table(dataframe=importance_df)})
 
     # Save models
     print("\nSaving tuned model...")
