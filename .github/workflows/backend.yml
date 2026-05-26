@@ -3,22 +3,20 @@ name: Backend CI/CD Pipeline
 on:
   push:
     branches: [ main, develop ]
-    paths: [ 'api/**', 'scripts/**', 'tests/**', 'requirements.txt' ]
   pull_request:
     branches: [ main, develop ]
 
 jobs:
-  test-and-lint:
+  lint:
     runs-on: ubuntu-latest
-    
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
-    
+
     - name: Cache dependencies
       uses: actions/cache@v3
       with:
@@ -26,65 +24,89 @@ jobs:
         key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-
-    
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    
+
     - name: Lint with Flake8
       run: |
-        flake8 api/ scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=scripts/train_model.py
+        flake8 api/ scripts/ --count --select=E9,F63,F7,F82 --show-source --statistics
         flake8 api/ scripts/ --count --exit-zero --max-complexity=10 --max-line-length=120 --statistics
-    
+        echo "✅ Flake8 lint passed"
+
     - name: Lint with Pylint
-      run: pylint api/ --fail-under=7.0 --exit-zero
-    
-    - name: Run Pytest
       run: |
-        pytest tests/ -v --cov=api --cov-report=xml --cov-report=term-missing || true
-    
-    - name: Upload coverage
+        pylint api/ --fail-under=7.0 --exit-zero
+        echo "✅ Pylint check passed"
+
+  test:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run Pytest with coverage
+      env:
+        DATABASE_URL: sqlite:///./test.db
+        WANDB_MODE: disabled
+        ENVIRONMENT: test
+      run: |
+        pytest tests/ -v --cov=api --cov-report=xml --cov-report=term-missing
+        echo "✅ All tests passed"
+
+    - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
         file: ./coverage.xml
         flags: unittests
+      continue-on-error: true
 
-  build-and-push:
-    needs: test-and-lint
+  deploy:
+    needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
-    
-    - name: Build Docker image
-      run: docker build -t ganapathi18/employer_burnout:${{ github.sha }} -t ganapathi18/employer_burnout:latest .
-    
+
     - name: Log in to Docker Hub
-      if: github.event_name == 'push'
       uses: docker/login-action@v2
       with:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
-    
-    - name: Push to Docker Hub
-      if: github.event_name == 'push'
+
+    - name: Build and Push Docker image
       run: |
-        docker tag ganapathi18/employer_burnout:latest ${{ secrets.DOCKER_USERNAME }}/employer_burnout:latest
-        docker tag ganapathi18/employer_burnout:latest ${{ secrets.DOCKER_USERNAME }}/employer_burnout:${{ github.sha }}
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/employer_burnout:${{ github.sha }} \
+                     -t ${{ secrets.DOCKER_USERNAME }}/employer_burnout:latest .
         docker push ${{ secrets.DOCKER_USERNAME }}/employer_burnout:latest
         docker push ${{ secrets.DOCKER_USERNAME }}/employer_burnout:${{ github.sha }}
+        echo "✅ Docker image pushed"
 
-  deploy-to-render:
-    needs: build-and-push
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
     - name: Deploy Backend to Render
       run: |
         curl -X POST "${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}"
+        echo "✅ Render deployment triggered"

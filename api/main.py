@@ -18,6 +18,32 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
+# Weights & Biases (optional — disabled if WANDB_API_KEY not set or WANDB_MODE=disabled)
+ENABLE_WANDB = (
+    os.getenv('ENABLE_WANDB', 'false').lower() == 'true'
+    and os.getenv('WANDB_API_KEY')
+    and os.getenv('WANDB_MODE', '').lower() != 'disabled'
+)
+if ENABLE_WANDB:
+    try:
+        import wandb
+        wandb.init(
+            project="burnout-prediction",
+            entity=os.getenv('WANDB_ENTITY', 'kakarlagana18-iihmr'),
+            name="api-predictions",
+            job_type="inference",
+            resume="allow",
+            id="api-inference-run",
+            tags=["production", "api", "inference"],
+            notes="Live API prediction tracking"
+        )
+        logger.info("✓ W&B initialized for prediction tracking")
+    except Exception as wb_err:
+        logger.warning("W&B init failed (non-critical): %s", wb_err)
+        ENABLE_WANDB = False
+else:
+    wandb = None  # type: ignore
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -365,8 +391,23 @@ async def predict(user_data: UserData):
 
         risk_level = 'High' if prediction == 1 else 'Low'
         PREDICTION_COUNT.labels(risk_level=risk_level).inc()
-
         logger.info("Prediction: %s (%.2f%%)", risk_level, probability * 100)
+
+        # Log prediction to W&B (when enabled)
+        if ENABLE_WANDB and wandb is not None:
+            try:
+                wandb.log({
+                    "prediction/risk_level": 1 if risk_level == 'High' else 0,
+                    "prediction/risk_probability": float(probability),
+                    "prediction/work_hours": float(all_features['work_hours']),
+                    "prediction/sleep_hours": float(all_features['sleep_hours']),
+                    "prediction/fatigue_risk": float(all_features['fatigue_risk']),
+                    "prediction/workload_pressure": float(all_features['workload_pressure']),
+                    "prediction/work_life_balance": float(all_features['work_life_balance_score']),
+                    "prediction/health_risk_score": float(all_features['health_risk_score']),
+                })
+            except Exception as wb_log_err:
+                logger.debug("W&B log failed (non-critical): %s", wb_log_err)
 
         # log to database (non-blocking failures)
         try:

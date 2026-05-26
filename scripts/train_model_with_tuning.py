@@ -40,14 +40,24 @@ def train_with_tuning():
     """Train models with Bayesian hyperparameter optimization"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M")
 
-    # Initialize W&B
+    # Initialize W&B with detailed config
     run = wandb.init(
         entity=os.getenv('WANDB_ENTITY', 'kakarlagana18-iihmr'),
         project="burnout-prediction",
         name=f"bayesian_tuning_{timestamp}",
-        config={"tuning_method": "BayesianSearch", "n_iter": 20},
-        tags=["hyperparameter-tuning", "bayesian", "production"],
-        notes="Bayesian hyperparameter optimization for 3 models"
+        config={
+            "tuning_method": "BayesSearchCV",
+            "n_iter": 20,
+            "cv_folds": 3,
+            "scoring": "roc_auc",
+            "models": ["RandomForest", "GradientBoosting", "XGBoost"],
+            "dataset": "work_from_home_burnout",
+            "test_size": 0.2,
+            "random_state": 42,
+            "n_features": 17
+        },
+        tags=["hyperparameter-tuning", "bayesian", "production", "classification"],
+        notes="Bayesian hyperparameter optimization comparing RF, GB, XGBoost — selects best by ROC-AUC"
     )
 
     print("Loading data...")
@@ -149,13 +159,19 @@ def train_with_tuning():
         print(f"Test Accuracy: {acc:.4f}")
         print(f"Test ROC-AUC: {auc:.4f}")
 
-        # Log to W&B
-        wandb.log({
-            f"{name}_best_cv_score": opt.best_score_,
-            f"{name}_test_accuracy": acc,
-            f"{name}_test_roc_auc": auc,
-            f"{name}_best_params": opt.best_params_
-        })
+        # Log per-model metrics to W&B (flat keys so W&B can graph them)
+        log_dict = {
+            f"{name}/best_cv_roc_auc": opt.best_score_,
+            f"{name}/test_accuracy": acc,
+            f"{name}/test_roc_auc": auc,
+        }
+        # Log each best hyperparameter separately for W&B parallel-coordinates view
+        for param_name, param_val in opt.best_params_.items():
+            try:
+                log_dict[f"{name}/best_{param_name}"] = float(param_val)
+            except (TypeError, ValueError):
+                log_dict[f"{name}/best_{param_name}_str"] = str(param_val)
+        wandb.log(log_dict)
 
         if auc > best_score:
             best_score = auc
@@ -174,10 +190,83 @@ def train_with_tuning():
     wandb.run.summary["best_roc_auc"] = best_score
     wandb.run.summary["best_params"] = best_params
 
-    # Final evaluation
-    y_pred = best_model.predict(X_test_scaled)
+    # Full classification report for best model
+    from sklearn.metrics import classification_report, precision_recall_fscore_support, confusion_matrix
+    y_pred_best = best_model.predict(X_test_scaled)
+    y_proba_best = best_model.predict_proba(X_test_scaled)[:, 1]
+
     print("\nClassification Report:")
-    print(classification_report(y_test, y_pred, target_names=['Low Risk', 'High Risk']))
+    print(classification_report(y_test, y_pred_best, target_names=['Low Risk', 'High Risk']))
+
+    # Log final best-model metrics to W&B summary
+    report = classification_report(y_test, y_pred_best,
+                                   target_names=['Low Risk', 'High Risk'], output_dict=True)
+    prec, rec, f1, _ = precision_recall_fscore_support(y_test, y_pred_best, average='weighted')
+
+    wandb.run.summary["best_model"] = best_name
+    wandb.run.summary["best_roc_auc"] = best_score
+    wandb.run.summary["best_accuracy"] = accuracy_score(y_test, y_pred_best)
+    wandb.run.summary["best_f1_weighted"] = f1
+    wandb.run.summary["best_precision_weighted"] = prec
+    wandb.run.summary["best_recall_weighted"] = rec
+    wandb.run.summary["best_params"] = str(best_params)
+
+    # Log detailed per-class metrics
+    wandb.log({
+        "best/accuracy": accuracy_score(y_test, y_pred_best),
+        "best/roc_auc": best_score,
+        "best/f1_high_risk": report['High Risk']['f1-score'],
+        "best/precision_high_risk": report['High Risk']['precision'],
+        "best/recall_high_risk": report['High Risk']['recall'],
+        "best/f1_low_risk": report['Low Risk']['f1-score'],
+        "best/precision_low_risk": report['Low Risk']['precision'],
+        "best/recall_low_risk": report['Low Risk']['recall'],
+    })
+
+    # Confusion matrix
+    try:
+        cm = confusion_matrix(y_test, y_pred_best)
+        wandb.log({"best/confusion_matrix": wandb.plot.confusion_matrix(
+            probs=None,
+            y_true=y_test.values,
+            preds=y_pred_best,
+            class_names=['Low Risk', 'High Risk']
+        )})
+    except Exception as e:
+        print(f"Warning: Could not log confusion matrix: {e}")
+
+    # ROC curve (binary classifier needs 2D proba)
+    try:
+        y_proba_2d = best_model.predict_proba(X_test_scaled)
+        wandb.log({"best/roc_curve": wandb.plot.roc_curve(
+            y_test.values, y_proba_2d,
+            labels=['Low Risk', 'High Risk']
+        )})
+    except Exception as e:
+        print(f"Warning: Could not log ROC curve: {e}")
+
+    # Precision-Recall curve
+    try:
+        wandb.log({"best/pr_curve": wandb.plot.pr_curve(
+            y_test.values, y_proba_2d,
+            labels=['Low Risk', 'High Risk']
+        )})
+    except Exception as e:
+        print(f"Warning: Could not log PR curve: {e}")
+
+    # Results comparison table
+    results_table = wandb.Table(
+        columns=["Model", "Best CV ROC-AUC", "Test ROC-AUC", "Test Accuracy", "Best Hyperparameters"]
+    )
+    for name in models.keys():
+        results_table.add_data(
+            name,
+            round(wandb.run.summary.get(f"{name}/best_cv_roc_auc", 0), 4),
+            round(wandb.run.summary.get(f"{name}/test_roc_auc", 0), 4),
+            round(wandb.run.summary.get(f"{name}/test_accuracy", 0), 4),
+            str(best_params) if name == best_name else "N/A"
+        )
+    wandb.log({"model_comparison_table": results_table})
 
     # Feature importance
     if hasattr(best_model, 'feature_importances_'):

@@ -15,15 +15,22 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY api/ ./api/
 COPY scripts/ ./scripts/
+COPY frontend/ ./frontend/
+
+# Copy model artifacts (pre-trained model must exist before building)
+COPY models/ ./models/
+
+# Copy dataset (needed for feature engineering medians)
+COPY data/ ./data/
 
 # Create runtime directories
-RUN mkdir -p models logs
+RUN mkdir -p logs
 
 # Expose port
 EXPOSE 8000
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/health || exit 1
 
 # Run FastAPI application

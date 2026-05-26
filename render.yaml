@@ -1,5 +1,5 @@
 services:
-  # Backend API
+  # ─── FastAPI Backend ──────────────────────────────────────────────────────
   - type: web
     name: burnout-api
     runtime: python
@@ -9,28 +9,39 @@ services:
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
-        sync: false
+        sync: false          # Set in Render dashboard → secrets
+
       - key: WANDB_API_KEY
-        sync: false
+        sync: false          # Set in Render dashboard → secrets
+
+      - key: WANDB_ENTITY
+        value: kakarlagana18-iihmr
+
+      - key: ENABLE_WANDB
+        value: "true"        # Enables live prediction logging to W&B
+
       - key: ENVIRONMENT
         value: production
+
       - key: MODEL_PATH
         value: models/best_model.joblib
+
       - key: PREPROCESSOR_PATH
         value: models/preprocessor.joblib
 
-  # Frontend Streamlit
+  # ─── Streamlit Frontend ───────────────────────────────────────────────────
   - type: web
     name: burnout-frontend
     runtime: python
     env: python
     buildCommand: pip install --no-cache-dir -r requirements.txt
-    startCommand: streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0
+    startCommand: streamlit run frontend/streamlit_app.py --server.port $PORT --server.address 0.0.0.0 --server.headless true
     envVars:
       - key: API_URL
         fromService:
           type: web
           name: burnout-api
-          property: url
+          property: url        # Automatically injects live backend URL
+
       - key: ENVIRONMENT
         value: production

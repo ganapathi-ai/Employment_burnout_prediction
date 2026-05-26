@@ -187,15 +187,22 @@ def train_model():
     except Exception as e:
         print("Warning: Could not log confusion matrix: %s", e)
 
-    # Create ROC curve
+    # Create ROC curve (needs 2D proba array)
     try:
-        wandb.log({"roc_curve": wandb.plot.roc_curve(y_test.values, y_proba)})
+        y_proba_2d = best_model.predict_proba(X_test_scaled)
+        wandb.log({"roc_curve": wandb.plot.roc_curve(
+            y_test.values, y_proba_2d,
+            labels=['Low Risk', 'High Risk']
+        )})
     except Exception as e:
         print("Warning: Could not log ROC curve: %s", e)
 
     # Create precision-recall curve
     try:
-        wandb.log({"pr_curve": wandb.plot.pr_curve(y_test.values, y_proba)})
+        wandb.log({"pr_curve": wandb.plot.pr_curve(
+            y_test.values, y_proba_2d,
+            labels=['Low Risk', 'High Risk']
+        )})
     except Exception as e:
         print("Warning: Could not log PR curve: %s", e)
 

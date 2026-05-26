@@ -95,12 +95,23 @@ with tab1:
     if not name and not user_id_input:
         st.warning("Please provide either a Name or User ID for tracking.")
     
-    # Load dataset medians
-    dataset_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'work_from_home_burnout_dataset.csv')
+    # Load dataset medians — try multiple paths for local + Render compatibility
+    def _find_dataset():
+        candidates = [
+            os.path.join(os.path.dirname(__file__), '..', 'data', 'work_from_home_burnout_dataset.csv'),
+            os.path.join(os.getcwd(), 'data', 'work_from_home_burnout_dataset.csv'),
+            'data/work_from_home_burnout_dataset.csv',
+        ]
+        for p in candidates:
+            if os.path.exists(p):
+                return p
+        return None
+
+    _ds_path = _find_dataset()
     try:
-        df_all = pd.read_csv(dataset_path)
-        median_hours = df_all['work_hours'].median()
-        median_meetings = df_all['meetings_count'].median()
+        df_all = pd.read_csv(_ds_path) if _ds_path else None
+        median_hours = df_all['work_hours'].median() if df_all is not None else 8
+        median_meetings = df_all['meetings_count'].median() if df_all is not None else 3
     except Exception:
         median_hours = 8
         median_meetings = 3
@@ -305,9 +316,16 @@ with tab2:
     
     try:
         base = os.path.dirname(__file__)
-        df_path = os.path.join(base, '..', 'data', 'work_from_home_burnout_dataset_transformed.csv')
-        if not os.path.exists(df_path):
-            df_path = os.path.join(base, '..', 'data', 'work_from_home_burnout_dataset.csv')
+        # Try multiple paths for local and Render compatibility
+        candidates = [
+            os.path.join(base, '..', 'data', 'work_from_home_burnout_dataset_transformed.csv'),
+            os.path.join(base, '..', 'data', 'work_from_home_burnout_dataset.csv'),
+            os.path.join(os.getcwd(), 'data', 'work_from_home_burnout_dataset.csv'),
+            'data/work_from_home_burnout_dataset.csv',
+        ]
+        df_path = next((p for p in candidates if os.path.exists(p)), None)
+        if df_path is None:
+            raise FileNotFoundError("Dataset not found in any expected location")
         df = pd.read_csv(df_path)
         
         col1, col2 = st.columns(2)
