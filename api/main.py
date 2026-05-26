@@ -3,7 +3,8 @@
 """FastAPI backend with feature engineering for burnout prediction"""
 import logging
 import os
-from datetime import datetime, UTC
+from datetime import datetime, timezone
+from typing import Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Response
@@ -83,8 +84,8 @@ class UserData(BaseModel):
     task_completion_rate: float = Field(..., ge=0, le=100)
     day_type: str = Field(..., description="Weekday or Weekend")
     # optional tracking fields
-    name: str | None = Field(None, description="Optional user name for tracking")
-    user_id: str | None = Field(None, description="Optional user ID for tracking")
+    name: Optional[str] = Field(None, description="Optional user name for tracking")
+    user_id: Optional[str] = Field(None, description="Optional user ID for tracking")
 
     @model_validator(mode='after')
     def require_name_or_userid(self):
@@ -342,7 +343,7 @@ async def predict(user_data: UserData):
     import time
     start_time = time.time()
     ACTIVE_REQUESTS.inc()
-    
+
     try:
         if MODEL is None:
             REQUEST_COUNT.labels(method='POST', endpoint='/predict', status='503').inc()
@@ -415,7 +416,7 @@ async def predict(user_data: UserData):
             ins = user_requests.insert().values(
                 user_id=user_data.user_id,
                 name=user_data.name,
-                created_at=datetime.now(UTC),
+                created_at=datetime.now(timezone.utc),
                 work_hours=float(all_features['work_hours']),
                 screen_time_hours=float(all_features['screen_time_hours']),
                 meetings_count=int(all_features['meetings_count']),
