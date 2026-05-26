@@ -114,8 +114,8 @@ MODEL = None
 SCALER = None
 
 # medians used for flag calculations; loaded lazily
-MEDIAN_HOURS: float | None = None
-MEDIAN_MEETINGS: float | None = None
+MEDIAN_HOURS: Optional[float] = None
+MEDIAN_MEETINGS: Optional[float] = None
 
 # ---------- database setup ----------
 DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./user_requests.db')
