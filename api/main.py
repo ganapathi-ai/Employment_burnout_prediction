@@ -18,6 +18,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.exc import SQLAlchemyError
 
+# Load environment variables and configure logging FIRST
+load_dotenv()
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Weights & Biases (optional — disabled if WANDB_API_KEY not set or WANDB_MODE=disabled)
 ENABLE_WANDB = (
     os.getenv('ENABLE_WANDB', 'false').lower() == 'true'
@@ -37,18 +42,12 @@ if ENABLE_WANDB:
             tags=["production", "api", "inference"],
             notes="Live API prediction tracking"
         )
-        logger.info("✓ W&B initialized for prediction tracking")
+        logger.info("W&B initialized for prediction tracking")
     except Exception as wb_err:
         logger.warning("W&B init failed (non-critical): %s", wb_err)
         ENABLE_WANDB = False
 else:
     wandb = None  # type: ignore
-
-# Load environment variables from .env file
-load_dotenv()
-
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="Burnout Risk Prediction API",

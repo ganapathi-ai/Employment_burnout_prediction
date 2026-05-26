@@ -1,0 +1,39 @@
+groups:
+  - name: burnout_api_alerts
+    interval: 30s
+    rules:
+      - alert: APIDown
+        expr: up{job="burnout-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Burnout API is down"
+          description: "The FastAPI burnout prediction service has been unreachable for more than 1 minute."
+
+      - alert: HighErrorRate
+        expr: rate(api_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API error rate"
+          description: "More than 5% of requests are returning 5xx errors."
+
+      - alert: HighLatency
+        expr: histogram_quantile(0.95, rate(api_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency"
+          description: "P95 response time exceeds 2 seconds."
+
+      - alert: ModelNotLoaded
+        expr: model_loaded == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "ML model not loaded"
+          description: "The prediction model is not loaded — API is returning fallback responses."
